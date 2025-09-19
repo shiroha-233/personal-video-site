@@ -7,7 +7,21 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const data = await request.json()
+    const data: {
+      title: string;
+      description: string;
+      coverImage?: string;
+      videoUrl?: string;
+      duration?: string;
+      resources?: Array<{
+        name: string;
+        type: string;
+        url: string;
+        password?: string;
+        description?: string;
+      }>;
+      tags?: string[];
+    } = await request.json()
     const { id } = await params
 
     // 删除现有的资源和标签关联
@@ -33,7 +47,7 @@ export async function PUT(
     // 重新创建资源
     if (data.resources && data.resources.length > 0) {
       await prisma.resource.createMany({
-        data: data.resources.map((resource: any) => ({
+        data: data.resources.map((resource) => ({
           ...resource,
           videoId: video.id
         }))

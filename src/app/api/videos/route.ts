@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import type { Video as PrismaVideo, Resource, VideoTag, Tag } from '@prisma/client'
+
+// 定义包含关联数据的 Prisma 类型
+type VideoWithIncludes = PrismaVideo & {
+  resources: Resource[];
+  tags: (VideoTag & {
+    tag: Tag;
+  })[];
+};
 
 // GET - 获取所有视频
 export async function GET() {
@@ -18,7 +27,7 @@ export async function GET() {
       }
     })
 
-    const transformedVideos = videos.map((video: any) => ({
+    const transformedVideos = videos.map((video: VideoWithIncludes) => ({
       id: video.id,
       title: video.title,
       description: video.description,
@@ -26,14 +35,14 @@ export async function GET() {
       videoUrl: video.videoUrl,
       duration: video.duration,
       publishDate: video.publishDate.toISOString().split('T')[0],
-      resources: video.resources.map((resource: any) => ({
+      resources: video.resources.map((resource) => ({
         name: resource.name,
         type: resource.type,
         url: resource.url,
         password: resource.password,
         description: resource.description
       })),
-      tags: video.tags.map((vt: any) => vt.tag.name)
+      tags: video.tags.map((vt) => vt.tag.name)
     }))
 
     return NextResponse.json(transformedVideos)
@@ -46,7 +55,21 @@ export async function GET() {
 // POST - 创建新视频
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.json()
+    const data: {
+      title: string;
+      description: string;
+      coverImage?: string;
+      videoUrl?: string;
+      duration?: string;
+      resources?: Array<{
+        name: string;
+        type: string;
+        url: string;
+        password?: string;
+        description?: string;
+      }>;
+      tags?: string[];
+    } = await request.json()
     
     const video = await prisma.video.create({
       data: {
@@ -62,7 +85,7 @@ export async function POST(request: NextRequest) {
     // 创建资源
     if (data.resources && data.resources.length > 0) {
       await prisma.resource.createMany({
-        data: data.resources.map((resource: any) => ({
+        data: data.resources.map((resource) => ({
           ...resource,
           videoId: video.id
         }))

@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ExternalLink, Github, Users, MessageCircle } from 'lucide-react'
+import { ExternalLink, Github, Users } from 'lucide-react'
 
 // 自定义B站logo组件 - 模仿官方设计
 const BilibiliIcon = ({ className }: { className?: string }) => (

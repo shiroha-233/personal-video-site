@@ -45,6 +45,11 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  // Cloudflare Pages 配置
+  output: 'export',
+  trailingSlash: true,
+  skipTrailingSlashRedirect: true,
+  distDir: '.vercel/output/static',
   /* config options here */
 };
 
