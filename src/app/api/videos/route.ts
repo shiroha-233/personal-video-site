@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAllVideos, createVideo } from '@/lib/data'
 
+// 添加这个配置来确保API路由正常工作
+export const dynamic = 'force-dynamic'
+
 export const runtime = 'edge'
 
 export async function GET() {
@@ -14,8 +17,13 @@ export async function GET() {
     
   } catch (error) {
     console.error('❌ 获取视频列表失败:', error)
+    // 更详细的错误信息
     return NextResponse.json(
-      { error: '获取视频列表失败: ' + (error instanceof Error ? error.message : 'Unknown error') },
+      { 
+        error: '获取视频列表失败', 
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
+      },
       { status: 500 }
     )
   }
