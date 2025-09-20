@@ -27,6 +27,7 @@ interface Video {
 export default function AdminPage() {
   const [videos, setVideos] = useState<Video[]>([])
   const [editingIndex, setEditingIndex] = useState(-1)
+  const [isExtracting, setIsExtracting] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -196,6 +197,52 @@ export default function AdminPage() {
     setResources(resources.filter((_, i) => i !== index))
   }
 
+  // 自动提取视频封面和信息
+  const extractVideoInfo = async () => {
+    if (!formData.videoUrl.trim()) {
+      alert('请先输入视频链接')
+      return
+    }
+
+    setIsExtracting(true)
+    try {
+      const response = await fetch('/api/extract-cover', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          videoUrl: formData.videoUrl.trim()
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        // 自动填充提取到的信息
+        setFormData(prev => ({
+          ...prev,
+          title: result.data.title || prev.title,
+          description: result.data.description || prev.description,
+          coverImage: result.data.coverImage || prev.coverImage,
+          duration: result.data.duration || prev.duration
+        }))
+        
+        alert(`✅ 成功提取${result.platform}视频信息！\n` + 
+              `${result.data.title ? '标题: ' + result.data.title + '\n' : ''}` +
+              `${result.data.coverImage ? '封面: 已下载保存\n' : ''}` +
+              `${result.data.duration ? '时长: ' + result.data.duration : ''}`)
+      } else {
+        throw new Error(result.error || '提取失败')
+      }
+    } catch (error) {
+      console.error('提取封面失败:', error)
+      alert('❌ 封面提取失败: ' + (error instanceof Error ? error.message : '未知错误'))
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -222,8 +269,9 @@ export default function AdminPage() {
           <h3 className="text-green-900 font-semibold mb-2">✅ API 功能正常</h3>
           <div className="text-green-800 text-sm space-y-1">
             <p><strong>📋 当前状态:</strong> 本地开发模式，支持完整的增删改查功能</p>
-            <p><strong>🎯 功能特性:</strong> JSON 文件存储 + 本地 API 路由</p>
+            <p><strong>🎯 功能特性:</strong> JSON 文件存储 + 本地 API 路由 + 自动封面提取</p>
             <p><strong>💾 数据存储:</strong> 所有修改将保存到 videos.json 文件</p>
+            <p><strong>🎨 封面提取:</strong> 支持自动提取 B站、YouTube 视频封面和信息</p>
             <p><strong>🛠️ 使用方法:</strong> 请确保使用 <code className="bg-green-200 px-1 rounded">npm run dev</code> 启动服务</p>
           </div>
         </div>
@@ -291,37 +339,57 @@ export default function AdminPage() {
                   value={formData.coverImage}
                   onChange={(e) => setFormData({...formData, coverImage: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                  placeholder="输入封面图片URL"
+                  placeholder="输入封面图片URL（或使用上方自动提取）"
                 />
                 {formData.coverImage && (
-                  <div className="mt-2">
-                    <Image 
-                      src={formData.coverImage.includes('hdslb.com') 
-                        ? `/api/proxy-image?url=${encodeURIComponent(formData.coverImage)}` 
-                        : formData.coverImage
-                      } 
-                      alt="封面预览" 
-                      width={128}
-                      height={72}
-                      className="w-32 h-18 object-cover rounded-lg border border-gray-200"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.style.display = 'none'
-                      }}
-                    />
+                  <div className="mt-3">
+                    <p className="text-sm text-gray-600 mb-2">封面预览：</p>
+                    <div className="border border-gray-200 rounded-lg p-2 inline-block bg-gray-50">
+                      <Image 
+                        src={formData.coverImage.includes('hdslb.com') 
+                          ? `/api/proxy-image?url=${encodeURIComponent(formData.coverImage)}` 
+                          : formData.coverImage
+                        } 
+                        alt="封面预览" 
+                        width={200}
+                        height={120}
+                        className="w-50 h-30 object-cover rounded-md"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.src = '/covers/default.svg'
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">视频链接</label>
-                <input 
-                  type="text" 
-                  value={formData.videoUrl}
-                  onChange={(e) => setFormData({...formData, videoUrl: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                  placeholder="输入视频观看链接"
-                />
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={formData.videoUrl}
+                    onChange={(e) => setFormData({...formData, videoUrl: e.target.value})}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                    placeholder="输入视频观看链接（支持 B站、YouTube）"
+                  />
+                  <button 
+                    type="button"
+                    onClick={extractVideoInfo}
+                    disabled={isExtracting || !formData.videoUrl.trim()}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      isExtracting || !formData.videoUrl.trim()
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    {isExtracting ? '🔄 提取中...' : '🎨 提取封面'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 支持自动提取 B站、YouTube 视频的封面、标题、时长等信息
+                </p>
               </div>
               
               <div>
