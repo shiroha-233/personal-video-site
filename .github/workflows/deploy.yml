@@ -11,6 +11,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     name: Deploy to Cloudflare Pages
+    
+    # 添加必要的权限以支持 Cloudflare Pages 部署
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+      statuses: write
 
     steps:
       - name: Checkout
