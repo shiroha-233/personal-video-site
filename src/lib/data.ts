@@ -33,35 +33,24 @@ export async function getAllVideos(): Promise<Video[]> {
       // 服务器端，尝试获取静态数据
       try {
         // 在Edge Runtime中，使用相对URL或默认URL
-        // 修复：使用正确的相对路径URL
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
-          (process.env.CF_PAGES ? `https://${process.env.CF_PAGES_URL}` : '')
+          (process.env.CF_PAGES ? `https://${process.env.CF_PAGES_URL}` : 'http://localhost:3000')
         
-        // 构建正确的URL路径
-        const urlPath = baseUrl ? `${baseUrl}/videos.json` : '/videos.json'
-        
-        console.log('🔍 尝试获取视频数据:', urlPath)
-        
-        const response = await fetch(urlPath, {
+        const response = await fetch(`${baseUrl}/videos.json`, {
           cache: 'no-store'
         })
-        
         if (response.ok) {
           const data = await response.json()
-          console.log('✅ 成功获取静态数据:', Array.isArray(data) ? data.length : 0, '个视频')
           return Array.isArray(data) ? data : defaultData
-        } else {
-          console.log('⚠️ 静态数据请求失败:', response.status, response.statusText)
         }
       } catch (error) {
-        console.log('⚠️ 无法获取静态数据，使用内存数据:', error instanceof Error ? error.message : 'Unknown error')
+        console.log('无法获取静态数据，使用内存数据')
       }
     }
     
-    console.log('🔄 返回内存数据:', memoryStorage.length, '个视频')
     return memoryStorage
   } catch (error) {
-    console.error('❌ 读取视频数据失败:', error)
+    console.error('读取视频数据失败:', error)
     return [...defaultData]
   }
 }

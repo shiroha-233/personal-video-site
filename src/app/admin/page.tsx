@@ -359,18 +359,13 @@ export default function AdminPage() {
                     <Image 
                       src={(() => {
                         try {
-                          // 检查是否有跳过代理的标记
-                          if (formData.coverImage.includes('#no-proxy')) {
-                            return formData.coverImage.replace('#no-proxy', '')
-                          }
-                          
                           const urlObj = new URL(formData.coverImage)
-                          // B站图片默认可以直接访问
-                          if (urlObj.hostname.includes('hdslb.com') || urlObj.hostname.includes('bilibili.com')) {
-                            return formData.coverImage
-                          }
-                          
                           const needsProxy = [
+                            'hdslb.com',
+                            'i0.hdslb.com', 
+                            'i1.hdslb.com',
+                            'i2.hdslb.com',
+                            'bilibili.com',
                             'img.youtube.com'
                           ].some(domain => urlObj.hostname.includes(domain))
                           
