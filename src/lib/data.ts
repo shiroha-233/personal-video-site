@@ -28,29 +28,55 @@ let memoryStorage: Video[] = [...defaultData]
 // 读取所有视频数据
 export async function getAllVideos(): Promise<Video[]> {
   try {
-    // 在生产环境中，尝试从 public/videos.json 获取数据
+    console.log('📋 获取视频数据...')
+    
+    // 在服务器端尝试获取静态数据
     if (typeof window === 'undefined') {
-      // 服务器端，尝试获取静态数据
       try {
-        // 在Edge Runtime中，使用相对URL或默认URL
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
-          (process.env.CF_PAGES ? `https://${process.env.CF_PAGES_URL}` : 'http://localhost:3000')
+        // 在 Cloudflare Pages 环境中，直接使用当前域名
+        const baseUrl = process.env.CF_PAGES_URL 
+          ? `https://${process.env.CF_PAGES_URL}` 
+          : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+        
+        console.log('🌐 尝试从静态文件获取数据:', `${baseUrl}/videos.json`)
         
         const response = await fetch(`${baseUrl}/videos.json`, {
-          cache: 'no-store'
+          cache: 'no-store',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; VideoSite/1.0)',
+            'Accept': 'application/json'
+          }
         })
+        
         if (response.ok) {
           const data = await response.json()
-          return Array.isArray(data) ? data : defaultData
+          console.log('✅ 从静态文件获取数据成功:', data.length, '个视频')
+          
+          if (Array.isArray(data) && data.length > 0) {
+            // 更新内存存储
+            memoryStorage = [...data]
+            return data
+          }
+        } else {
+          console.log('⚠️ 静态文件响应失败:', response.status, response.statusText)
         }
       } catch (error) {
-        console.log('无法获取静态数据，使用内存数据')
+        console.log('⚠️ 无法获取静态数据，使用内存数据:', error instanceof Error ? error.message : 'Unknown error')
       }
     }
     
-    return memoryStorage
+    // 如果内存中有数据，返回内存数据
+    if (memoryStorage.length > 0) {
+      console.log('📦 使用内存数据:', memoryStorage.length, '个视频')
+      return memoryStorage
+    }
+    
+    // 最后使用默认数据
+    console.log('🔄 使用默认数据')
+    return [...defaultData]
+    
   } catch (error) {
-    console.error('读取视频数据失败:', error)
+    console.error('❌ 读取视频数据失败:', error)
     return [...defaultData]
   }
 }

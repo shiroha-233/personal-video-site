@@ -1,12 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Clock, Calendar, Tag, ExternalLink } from 'lucide-react'
 import { Video } from '@/types/video'
 import VideoDetailModal from './VideoDetailModal'
-import { getProxiedImageUrl, isValidImageUrl, createBlurDataURL } from '@/lib/imageUtils'
+import ImageWithFallback from './ImageWithFallback'
 
 interface VideoCardProps {
   video: Video
@@ -29,8 +28,22 @@ export default function VideoCard({ video }: VideoCardProps) {
     setIsModalOpen(true)
   }
 
+  // 检查URL是否可能是图片
+  const isValidImageUrl = (url: string) => {
+    try {
+      const urlObj = new URL(url)
+      // 检查是否是已知的图片域名和路径
+      if (urlObj.hostname.includes('bilibili.com') && urlObj.pathname.includes('/video/')) {
+        return false // 这是视频页面，不是图片
+      }
+      // 可以添加更多验证逻辑
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const shouldShowImage = !imageError && isValidImageUrl(video.coverImage)
-  const imageUrl = getProxiedImageUrl(video.coverImage)
 
   return (
     <>
@@ -43,29 +56,12 @@ export default function VideoCard({ video }: VideoCardProps) {
         {/* Video Cover */}
         <div className="relative overflow-hidden rounded-t-xl aspect-video">
           {shouldShowImage ? (
-            <Image
-              src={imageUrl}
+            <ImageWithFallback
+              src={video.coverImage}
               alt={video.title}
               fill
               className="object-cover group-hover:scale-110 transition-transform duration-500"
-              onError={() => {
-                console.log('图片加载失败:', imageUrl)
-                setImageError(true)
-              }}
-              onLoad={(e) => {
-                const img = e.target as HTMLImageElement
-                if (img.naturalWidth === 0) {
-                  setImageError(true)
-                }
-              }}
-              // 添加优先级和质量设置
-              priority={false}
-              quality={75}
-              // 添加占位符
-              placeholder="blur"
-              blurDataURL={createBlurDataURL()}
-              // 添加尺寸提示以优化加载
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              onError={() => setImageError(true)}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">

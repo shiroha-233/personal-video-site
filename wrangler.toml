@@ -16,37 +16,15 @@ globs = ["**/*.js"]
 
 [vars]
 NODE_ENV = "production"
-
-# Cloudflare Pages 配置
-[env.production]
-# 生产环境变量
 NEXT_PUBLIC_BASE_URL = "https://personal-video-site.pages.dev"
 
-[env.preview]
-# 预览环境变量
-NEXT_PUBLIC_BASE_URL = "https://preview.personal-video-site.pages.dev"
+# 增加超时时间和内存限制
+[limits]
+cpu_ms = 50000
+memory_mb = 128
 
-# 缓存配置
-[[rules]]
-action = "cache"
-cache_level = "cache_everything"
-edge_cache_ttl = 86400
-browser_cache_ttl = 86400
-[rules.match]
-url = "*/api/proxy-image*"
-
-[[rules]]
-action = "cache"
-cache_level = "cache_everything"
-edge_cache_ttl = 31536000
-browser_cache_ttl = 31536000
-[rules.match]
-url = "*/covers/*"
-
-[[rules]]
-action = "cache"
-cache_level = "cache_everything"
-edge_cache_ttl = 31536000
-browser_cache_ttl = 31536000
-[rules.match]
-url = "*/backgrounds/*"
+# 路由配置
+[[routes]]
+pattern = "/api/*"
+zone_name = ""
+custom_domain = false
