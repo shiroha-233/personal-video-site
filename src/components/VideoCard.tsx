@@ -44,6 +44,7 @@ export default function VideoCard({ video }: VideoCardProps) {
   }
 
   // 处理图片URL，对于需要代理的图片使用代理API
+  // B站图片默认可以直接访问，不需要代理
   const getProxiedImageUrl = (originalUrl: string) => {
     try {
       const urlObj = new URL(originalUrl)
@@ -53,13 +54,13 @@ export default function VideoCard({ video }: VideoCardProps) {
         return originalUrl.replace('#no-proxy', '')
       }
       
+      // B站图片默认可以直接访问
+      if (urlObj.hostname.includes('hdslb.com') || urlObj.hostname.includes('bilibili.com')) {
+        return originalUrl
+      }
+      
       // 对于需要代理的域名，使用代理API
       const needsProxy = [
-        'hdslb.com',
-        'i0.hdslb.com', 
-        'i1.hdslb.com',
-        'i2.hdslb.com',
-        'bilibili.com',
         'img.youtube.com'
       ].some(domain => urlObj.hostname.includes(domain))
       

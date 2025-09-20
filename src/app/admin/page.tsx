@@ -365,12 +365,12 @@ export default function AdminPage() {
                           }
                           
                           const urlObj = new URL(formData.coverImage)
+                          // B站图片默认可以直接访问
+                          if (urlObj.hostname.includes('hdslb.com') || urlObj.hostname.includes('bilibili.com')) {
+                            return formData.coverImage
+                          }
+                          
                           const needsProxy = [
-                            'hdslb.com',
-                            'i0.hdslb.com', 
-                            'i1.hdslb.com',
-                            'i2.hdslb.com',
-                            'bilibili.com',
                             'img.youtube.com'
                           ].some(domain => urlObj.hostname.includes(domain))
                           
