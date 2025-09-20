@@ -106,14 +106,10 @@ export default function AdminPage() {
       duration: formData.duration.trim() || undefined
     }
     
-    console.log('💾 准备保存视频数据:', videoData)
-    console.log('📝 编辑模式:', editingIndex === -1 ? '新增' : '更新')
-    
     try {
       let response
       if (editingIndex === -1) {
         // 新增
-        console.log('➕ 发送新增请求到 /api/videos')
         response = await fetch('/api/videos', {
           method: 'POST',
           headers: {
@@ -124,7 +120,6 @@ export default function AdminPage() {
       } else {
         // 更新
         const videoId = videos[editingIndex].id
-        console.log('🔄 发送更新请求到 /api/videos/' + videoId)
         response = await fetch(`/api/videos/${videoId}`, {
           method: 'PUT',
           headers: {
@@ -134,22 +129,16 @@ export default function AdminPage() {
         })
       }
       
-      console.log('📡 保存请求响应状态:', response.status)
-      
       if (response.ok) {
-        const result = await response.json()
-        console.log('✅ 保存响应:', result)
         alert('✅ 视频保存成功！')
         await loadVideos()
         cancelEdit()
       } else {
-        const errorData = await response.json().catch(() => ({ error: '未知错误' }))
-        console.error('❌ 保存失败响应:', errorData)
-        throw new Error(errorData.error || '服务器响应错误')
+        throw new Error('服务器响应错误')
       }
     } catch (error) {
-      console.error('❌ 保存失败:', error)
-      alert(`❌ 保存失败: ${error instanceof Error ? error.message : '未知错误'}`)
+      console.error('保存失败:', error)
+      alert('❌ 保存失败，请检查网络连接和服务器状态')
     }
   }
 
@@ -157,28 +146,20 @@ export default function AdminPage() {
     if (editingIndex !== -1 && confirm('确定要删除这个视频吗？')) {
       try {
         const videoId = videos[editingIndex].id
-        console.log('🗑️ 准备删除视频, ID:', videoId)
-        
         const response = await fetch(`/api/videos/${videoId}`, {
           method: 'DELETE'
         })
         
-        console.log('📡 删除请求响应状态:', response.status)
-        
         if (response.ok) {
-          const result = await response.json()
-          console.log('✅ 删除响应:', result)
           alert('✅ 视频删除成功！')
           await loadVideos()
           cancelEdit()
         } else {
-          const errorData = await response.json().catch(() => ({ error: '未知错误' }))
-          console.error('❌ 删除失败响应:', errorData)
-          throw new Error(errorData.error || '服务器响应错误')
+          throw new Error('服务器响应错误')
         }
       } catch (error) {
-        console.error('❌ 删除失败:', error)
-        alert(`❌ 删除失败: ${error instanceof Error ? error.message : '未知错误'}`)
+        console.error('删除失败:', error)
+        alert('❌ 删除失败，请检查网络连接和服务器状态')
       }
     }
   }

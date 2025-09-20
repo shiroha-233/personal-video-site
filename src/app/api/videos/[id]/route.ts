@@ -5,10 +5,10 @@ export const runtime = 'edge'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
+    const { id } = params
     
     const video = await getVideoById(id)
 
@@ -29,15 +29,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
+    const { id } = params
     const data = await request.json()
-    
-    console.log('🔄 API PUT 被调用, ID:', id)
-    console.log('📋 请求 URL:', request.url)
-    console.log('📊 更新数据:', data)
     
     const success = await updateVideo(id, {
       title: data.title,
@@ -50,15 +46,13 @@ export async function PUT(
     })
     
     if (!success) {
-      console.log('❌ 视频不存在, ID:', id)
       return NextResponse.json({ error: '视频不存在' }, { status: 404 })
     }
 
-    console.log('✅ 更新成功, ID:', id)
     return NextResponse.json({ success: true })
     
   } catch (error) {
-    console.error('❌ 更新视频失败:', error)
+    console.error('更新视频失败:', error)
     return NextResponse.json(
       { error: '更新视频失败: ' + (error instanceof Error ? error.message : 'Unknown error') },
       { status: 500 }
@@ -68,26 +62,21 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
-    
-    console.log('🗑️ API DELETE 被调用, ID:', id)
-    console.log('📋 请求 URL:', request.url)
+    const { id } = params
     
     const success = await deleteVideo(id)
     
     if (!success) {
-      console.log('❌ 视频不存在, ID:', id)
       return NextResponse.json({ error: '视频不存在' }, { status: 404 })
     }
 
-    console.log('✅ 删除成功, ID:', id)
     return NextResponse.json({ success: true })
     
   } catch (error) {
-    console.error('❌ 删除视频失败:', error)
+    console.error('删除视频失败:', error)
     return NextResponse.json(
       { error: '删除视频失败: ' + (error instanceof Error ? error.message : 'Unknown error') },
       { status: 500 }

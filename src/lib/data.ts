@@ -22,87 +22,40 @@ const defaultData: Video[] = [
   }
 ]
 
-// 检测环境
-const isDevelopment = process.env.NODE_ENV === 'development'
+// 在 Edge Runtime 中使用内存存储
+let memoryStorage: Video[] = [...defaultData]
 
-// 开发环境：文件系统操作
-async function readVideosFromFile(): Promise<Video[]> {
-  if (!isDevelopment) return defaultData
-  
-  try {
-    const fs = await import('fs/promises')
-    const path = await import('path')
-    const filePath = path.join(process.cwd(), 'public', 'videos.json')
-    
-    const fileContent = await fs.readFile(filePath, 'utf-8')
-    const data = JSON.parse(fileContent)
-    return Array.isArray(data) ? data : defaultData
-  } catch (error) {
-    console.log('📄 开发环境：videos.json 文件不存在，使用默认数据')
-    return defaultData
-  }
-}
-
-async function writeVideosToFile(videos: Video[]): Promise<void> {
-  if (!isDevelopment) {
-    throw new Error('生产环境不支持写入操作')
-  }
-  
-  try {
-    const fs = await import('fs/promises')
-    const path = await import('path')
-    const filePath = path.join(process.cwd(), 'public', 'videos.json')
-    
-    await fs.writeFile(filePath, JSON.stringify(videos, null, 2), 'utf-8')
-    console.log('💾 开发环境：成功写入 videos.json 文件')
-  } catch (error) {
-    console.error('❌ 开发环境：写入 videos.json 文件失败:', error)
-    throw error
-  }
-}
-
-// 生产环境：内存存储（从静态文件初始化）
-let productionMemoryStorage: Video[] | null = null
-
-async function getProductionStorage(): Promise<Video[]> {
-  if (productionMemoryStorage === null) {
-    try {
-      // 在生产环境中，尝试通过 fetch 获取静态文件
-      const response = await fetch('/videos.json')
-      if (response.ok) {
-        const data = await response.json()
-        productionMemoryStorage = Array.isArray(data) ? data : defaultData
-      } else {
-        productionMemoryStorage = defaultData
-      }
-    } catch (error) {
-      console.log('⚠️ 生产环境：无法获取 videos.json，使用默认数据')
-      productionMemoryStorage = defaultData
-    }
-  }
-  return [...productionMemoryStorage]
-}
-
-// 统一的数据访问接口
+// 读取所有视频数据
 export async function getAllVideos(): Promise<Video[]> {
   try {
-    console.log(`📋 getAllVideos 被调用 - ${isDevelopment ? '开发' : '生产'}环境`)
-    
-    if (isDevelopment) {
-      const videos = await readVideosFromFile()
-      console.log('✅ 开发环境：从文件读取到', videos.length, '个视频')
-      return videos
-    } else {
-      const videos = await getProductionStorage()
-      console.log('✅ 生产环境：从内存读取到', videos.length, '个视频')
-      return videos
+    // 在生产环境中，尝试从 public/videos.json 获取数据
+    if (typeof window === 'undefined') {
+      // 服务器端，尝试获取静态数据
+      try {
+        // 在Edge Runtime中，使用相对URL或默认URL
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+          (process.env.CF_PAGES ? `https://${process.env.CF_PAGES_URL}` : 'http://localhost:3000')
+        
+        const response = await fetch(`${baseUrl}/videos.json`, {
+          cache: 'no-store'
+        })
+        if (response.ok) {
+          const data = await response.json()
+          return Array.isArray(data) ? data : defaultData
+        }
+      } catch (error) {
+        console.log('无法获取静态数据，使用内存数据')
+      }
     }
+    
+    return memoryStorage
   } catch (error) {
-    console.error('❌ 读取视频数据失败:', error)
+    console.error('读取视频数据失败:', error)
     return [...defaultData]
   }
 }
 
+// 根据ID获取单个视频
 export async function getVideoById(id: string): Promise<Video | null> {
   try {
     const videos = await getAllVideos()
@@ -113,90 +66,54 @@ export async function getVideoById(id: string): Promise<Video | null> {
   }
 }
 
+// 创建新视频 (仅在内存中)
 export async function createVideo(videoData: Omit<Video, 'id' | 'publishDate'>): Promise<string> {
-  if (!isDevelopment) {
-    throw new Error('生产环境不支持创建操作')
-  }
-  
   try {
-    console.log('➕ 开发环境：createVideo 被调用')
-    console.log('📊 新视频数据:', videoData)
-    
     const newVideo: Video = {
       id: `video-${Date.now()}`,
       ...videoData,
       publishDate: new Date().toISOString().split('T')[0]
     }
     
-    const existingVideos = await readVideosFromFile()
-    const updatedVideos = [newVideo, ...existingVideos]
+    memoryStorage = [newVideo, ...memoryStorage]
     
-    await writeVideosToFile(updatedVideos)
-    
-    console.log('✅ 开发环境：视频创建成功，当前总数:', updatedVideos.length)
     return newVideo.id
   } catch (error) {
-    console.error('❌ 创建视频失败:', error)
+    console.error('创建视频失败:', error)
     throw error
   }
 }
 
+// 更新视频 (仅在内存中)
 export async function updateVideo(id: string, videoData: Partial<Omit<Video, 'id' | 'publishDate'>>): Promise<boolean> {
-  if (!isDevelopment) {
-    throw new Error('生产环境不支持更新操作')
-  }
-  
   try {
-    console.log('🔄 开发环境：updateVideo 被调用, ID:', id)
-    console.log('📊 更新数据:', videoData)
-    
-    const videos = await readVideosFromFile()
-    const videoIndex = videos.findIndex(video => video.id === id)
+    const videoIndex = memoryStorage.findIndex(video => video.id === id)
     
     if (videoIndex === -1) {
-      console.log('❌ 视频不存在, ID:', id)
       return false
     }
     
-    videos[videoIndex] = {
-      ...videos[videoIndex],
+    memoryStorage[videoIndex] = {
+      ...memoryStorage[videoIndex],
       ...videoData
     }
     
-    await writeVideosToFile(videos)
-    
-    console.log('✅ 开发环境：视频更新成功')
     return true
   } catch (error) {
-    console.error('❌ 更新视频失败:', error)
+    console.error('更新视频失败:', error)
     throw error
   }
 }
 
+// 删除视频 (仅在内存中)
 export async function deleteVideo(id: string): Promise<boolean> {
-  if (!isDevelopment) {
-    throw new Error('生产环境不支持删除操作')
-  }
-  
   try {
-    console.log('🗑️ 开发环境：deleteVideo 被调用, ID:', id)
+    const originalLength = memoryStorage.length
+    memoryStorage = memoryStorage.filter(video => video.id !== id)
     
-    const videos = await readVideosFromFile()
-    const originalLength = videos.length
-    const filteredVideos = videos.filter(video => video.id !== id)
-    
-    const deleted = filteredVideos.length < originalLength
-    
-    if (deleted) {
-      await writeVideosToFile(filteredVideos)
-      console.log('✅ 开发环境：删除成功，当前总数:', filteredVideos.length)
-    } else {
-      console.log('❌ 未找到要删除的视频')
-    }
-    
-    return deleted
+    return memoryStorage.length < originalLength
   } catch (error) {
-    console.error('❌ 删除视频失败:', error)
+    console.error('删除视频失败:', error)
     throw error
   }
 }
