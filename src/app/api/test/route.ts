@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// 配置 Edge Runtime 以支持 Cloudflare Pages
-export const runtime = 'edge'
+// 在本地开发中使用 nodejs，在生产环境中使用 edge
+export const runtime = process.env.NODE_ENV === 'development' ? 'nodejs' : 'edge'
 
 export async function GET(request: NextRequest) {
   try {
