@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    unoptimized: true, // 禁用图片优化以兼容 output: 'export'
     remotePatterns: [
       {
         protocol: 'https',
@@ -46,7 +47,7 @@ const nextConfig: NextConfig = {
     ],
   },
   // Cloudflare Pages 配置
-  output: 'export',
+  // output: 'export', // 暂时注释掉以支持 API 路由
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
   distDir: '.vercel/output/static',

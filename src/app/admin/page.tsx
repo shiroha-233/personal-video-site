@@ -336,7 +336,10 @@ export default function AdminPage() {
                 {formData.coverImage && (
                   <div className="mt-2">
                     <img 
-                      src={formData.coverImage} 
+                      src={formData.coverImage.includes('hdslb.com') 
+                        ? `/api/proxy-image?url=${encodeURIComponent(formData.coverImage)}` 
+                        : formData.coverImage
+                      } 
                       alt="封面预览" 
                       className="w-32 h-18 object-cover rounded-lg border border-gray-200"
                       onError={(e) => {
