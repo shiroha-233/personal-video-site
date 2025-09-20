@@ -5,6 +5,7 @@ export const runtime = 'edge'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const url = searchParams.get('url')
+  let timeoutId: NodeJS.Timeout | null = null
   
   try {
     if (!url) {
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     // 获取图片
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时
+    timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时
     
     const response = await fetch(url, {
       headers: {
@@ -34,7 +35,9 @@ export async function GET(request: NextRequest) {
       signal: controller.signal
     })
     
-    clearTimeout(timeoutId)
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
 
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.status}`)
@@ -54,8 +57,14 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('图片代理失败:', error)
     
+    // 清除超时
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+    
     // 返回一个简单的占位图片或错误信息
-    if (error instanceof Error && error.name === 'TimeoutError') {
+    // 检查是否为超时错误
+    if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError' || error.message.includes('aborted'))) {
       return NextResponse.json(
         { error: '请求超时，请稍后重试' },
         { status: 408 }
