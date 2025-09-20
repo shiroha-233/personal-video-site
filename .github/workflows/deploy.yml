@@ -31,7 +31,7 @@ jobs:
       - name: Build with Cloudflare adapter
         run: |
           npm run cf:build
-          npx @cloudflare/next-on-pages
+          npx @cloudflare/next-on-pages --experimental-minify
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
