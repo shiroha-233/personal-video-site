@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createCloudflareClient, createLocalClient } from '@/lib/prisma-cloudflare'
-import { getRequestContext } from '@cloudflare/next-on-pages'
 
 // 配置 Edge Runtime 以支持 Cloudflare Pages
 export const runtime = 'edge'
@@ -13,16 +12,23 @@ async function getPrismaClient() {
       (process.env.NODE_ENV === 'production' || process.env.CF_PAGES)
     
     if (isProduction) {
+      console.log('🌐 生产环境检测，尝试使用 Cloudflare D1')
+      
+      // 在 Cloudflare Pages 中，环境绑定通过 global 对象传递
+      // 但在 Edge Runtime 中，这可能不可用，所以我们回退到本地模式
       try {
-        // 使用 @cloudflare/next-on-pages 推荐的方法获取 Cloudflare 环境
-        const { env } = getRequestContext()
-        console.log('🌐 成功获取 Cloudflare 环境，使用 D1 数据库')
-        console.log('📦 环境绑定:', { hasDB: !!(env as any).DB })
-        return await createCloudflareClient(env)
-      } catch (contextError) {
-        console.log('⚠️ 无法获取 Cloudflare 上下文，回退到本地模式:', contextError)
-        return await createLocalClient()
+        const globalEnv = (globalThis as any).env
+        if (globalEnv && globalEnv.DB) {
+          console.log('✨ 找到 D1 数据库绑定')
+          return await createCloudflareClient(globalEnv)
+        }
+      } catch (envError) {
+        console.log('⚠️ 无法访问 Cloudflare 环境绑定:', envError)
       }
+      
+      // 如果找不到 D1 绑定，回退到本地模式
+      console.log('🏠 回退到本地 SQLite 数据库')
+      return await createLocalClient()
     } else {
       console.log('🏠 本地开发环境，使用 SQLite 数据库')
       return await createLocalClient()

@@ -5,8 +5,8 @@ export const runtime = 'edge'
 
 export async function GET(request: NextRequest) {
   try {
-    // 在 Cloudflare Pages + Edge Runtime 中，环境变量通过 request 对象传递
-    const cloudflareEnv = (request as any).env || (globalThis as any).env
+    // 在 Cloudflare Pages + Edge Runtime 中，环境变量的访问方式
+    const globalEnv = (globalThis as any).env
     
     const testInfo = {
       timestamp: new Date().toISOString(),
@@ -14,9 +14,8 @@ export async function GET(request: NextRequest) {
         NODE_ENV: process.env.NODE_ENV,
         CF_PAGES: process.env.CF_PAGES,
         ENVIRONMENT: process.env.ENVIRONMENT,
-        hasGlobalEnv: !!(globalThis as any).env,
-        hasCloudflareEnv: !!cloudflareEnv,
-        hasRequestEnv: !!(request as any).env,
+        hasGlobalEnv: !!globalEnv,
+        globalEnvType: typeof globalEnv,
       },
       runtime: 'edge',
       message: '🎯 API 测试端点正常工作'
@@ -24,9 +23,10 @@ export async function GET(request: NextRequest) {
     
     // 收集数据库绑定信息
     const dbInfo = {
-      hasDB: !!(cloudflareEnv?.DB),
-      dbType: cloudflareEnv?.DB ? typeof cloudflareEnv.DB : 'undefined',
-      envKeys: cloudflareEnv ? Object.keys(cloudflareEnv) : []
+      hasDB: !!(globalEnv?.DB),
+      dbType: globalEnv?.DB ? typeof globalEnv.DB : 'undefined',
+      envKeys: globalEnv ? Object.keys(globalEnv).slice(0, 10) : [],
+      totalEnvKeys: globalEnv ? Object.keys(globalEnv).length : 0
     }
 
     console.log('🧪 测试端点调用:', testInfo)
