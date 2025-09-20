@@ -22,11 +22,44 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies for JSON-based storage"
+          npm ci --legacy-peer-deps
+
+      - name: Build Next.js application
+        run: |
+          echo "Building Next.js app for Cloudflare Pages..."
+          npm run build
+          echo "✅ Next.js build completed"
+          
+      - name: Convert for Cloudflare Pages
+        run: |
+          echo "Converting build for Cloudflare Pages..."
+          npx @cloudflare/next-on-pages
+          echo "✅ Cloudflare Pages conversion completed"
+          
+          # 检查输出目录
+          if [ -d ".vercel/output/static" ]; then
+            echo "✅ .vercel/output/static directory found"
+            ls -la .vercel/output/static/
+          else
+            echo "❌ .vercel/output/static directory not found!"
+            ls -la .vercel/ || echo "No .vercel directory"
+            exit 1
+          fi
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: personal-video-site
-          directory: .
+          directory: .vercel/output/static
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

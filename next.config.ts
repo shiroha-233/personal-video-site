@@ -12,7 +12,9 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  // 使用 @cloudflare/next-on-pages 适配器支持 API 路由
+  // Cloudflare Pages 优化配置
+  // 确保路径正确处理
+  trailingSlash: true,
   // JSON文件存储配置 - 支持完整 API 功能
 };
 

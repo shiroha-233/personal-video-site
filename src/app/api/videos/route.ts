@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAllVideos, createVideo } from '@/lib/data'
 
-export const runtime = 'nodejs'
+export const runtime = 'edge'
 
 export async function GET() {
   try {
