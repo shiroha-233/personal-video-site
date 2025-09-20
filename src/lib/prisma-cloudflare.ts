@@ -33,9 +33,11 @@ if (typeof window === 'undefined') {
 export { prisma }
 
 // 用于 Cloudflare 环境的初始化函数
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function createCloudflareClient(env: any): Promise<PrismaClient> {
   try {
     const { PrismaD1 } = await import('@prisma/adapter-d1')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const adapter = new PrismaD1(env.DB) as any
     return new PrismaClient({ adapter })
   } catch (error) {

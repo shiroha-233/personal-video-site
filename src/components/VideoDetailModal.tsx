@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import Image from 'next/image'
+// import Image from 'next/image' // 暂时未使用
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Download, Github, FolderOpen, Copy, ExternalLink, Calendar, Clock, Tag } from 'lucide-react'
 import { Video, Resource } from '@/types/video'

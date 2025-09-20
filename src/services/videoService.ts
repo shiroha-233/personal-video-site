@@ -1,8 +1,17 @@
 import { Video } from '@/types/video';
 import { prisma } from '@/lib/prisma';
+import type { Video as PrismaVideo, Resource, VideoTag, Tag } from '@prisma/client';
+
+// 定义包含关联数据的 Prisma 类型
+type VideoWithIncludes = PrismaVideo & {
+  resources: Resource[];
+  tags: (VideoTag & {
+    tag: Tag;
+  })[];
+};
 
 // 辅助函数：将数据库数据转换为应用类型
-function transformVideo(video: any): Video {
+function transformVideo(video: VideoWithIncludes): Video {
   return {
     id: video.id,
     title: video.title,
@@ -11,14 +20,14 @@ function transformVideo(video: any): Video {
     videoUrl: video.videoUrl || undefined,
     duration: video.duration || undefined,
     publishDate: video.publishDate.toISOString().split('T')[0],
-    resources: video.resources.map((resource: any) => ({
+    resources: video.resources.map((resource: Resource) => ({
       name: resource.name,
-      type: resource.type,
+      type: resource.type as 'github' | 'baidu' | 'aliyun' | 'onedrive' | 'other',
       url: resource.url,
       password: resource.password || undefined,
       description: resource.description || undefined
     })),
-    tags: video.tags.map((vt: any) => vt.tag.name)
+    tags: video.tags.map((vt: VideoTag & { tag: Tag }) => vt.tag.name)
   };
 }
 
@@ -80,8 +89,7 @@ export const videoService = {
             some: {
               tag: {
                 name: {
-                  contains: tag,
-                  mode: 'insensitive'
+                  contains: tag
                 }
               }
             }
@@ -115,14 +123,12 @@ export const videoService = {
           OR: [
             {
               title: {
-                contains: query,
-                mode: 'insensitive'
+                contains: query
               }
             },
             {
               description: {
-                contains: query,
-                mode: 'insensitive'
+                contains: query
               }
             },
             {
@@ -130,8 +136,7 @@ export const videoService = {
                 some: {
                   tag: {
                     name: {
-                      contains: query,
-                      mode: 'insensitive'
+                      contains: query
                     }
                   }
                 }
@@ -167,7 +172,7 @@ export const videoService = {
           name: 'asc'
         }
       });
-      return tags.map((tag: any) => tag.name);
+      return tags.map((tag: Tag) => tag.name);
     } catch (error) {
       console.error('获取标签失败:', error);
       return [];

@@ -11,7 +11,7 @@ interface SearchBarProps {
 
 export default function SearchBar({ 
   onSearch, 
-  onTagSelect, 
+  // onTagSelect, // 暂时未使用
   placeholder = "搜索视频标题、描述或日期..." 
 }: SearchBarProps) {
   const [query, setQuery] = useState('')

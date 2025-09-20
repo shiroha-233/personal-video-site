@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
 
 interface Resource {
   name: string
@@ -235,12 +237,12 @@ export default function AdminPage() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">视频资源管理后台</h1>
             <div className="space-x-2">
-              <a 
+              <Link 
                 href="/" 
                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
               >
                 🏠 返回首页
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -335,12 +337,14 @@ export default function AdminPage() {
                 </div>
                 {formData.coverImage && (
                   <div className="mt-2">
-                    <img 
+                    <Image 
                       src={formData.coverImage.includes('hdslb.com') 
                         ? `/api/proxy-image?url=${encodeURIComponent(formData.coverImage)}` 
                         : formData.coverImage
                       } 
                       alt="封面预览" 
+                      width={128}
+                      height={72}
                       className="w-32 h-18 object-cover rounded-lg border border-gray-200"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement
