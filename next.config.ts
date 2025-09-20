@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'export',
+  trailingSlash: true,
   typescript: {
     // 警告：在构建过程中忽略 TypeScript 错误
     ignoreBuildErrors: true,
@@ -12,7 +14,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  // JSON文件存储配置
+  // 静态导出配置 - 简单可靠
 };
 
 export default nextConfig;
