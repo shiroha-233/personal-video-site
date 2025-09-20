@@ -25,17 +25,27 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: |
           # 简化的依赖安装，不再需要Prisma相关依赖
           echo "Installing dependencies for JSON-based storage"
-          npm install --legacy-peer-deps
+          npm ci --legacy-peer-deps
 
       - name: Build Next.js application
         run: |
           npm run build
+          # 检查 out 目录是否生成
+          ls -la
+          if [ -d "out" ]; then
+            echo "out directory created successfully"
+            ls -la out/
+          else
+            echo "ERROR: out directory not found!"
+            exit 1
+          fi
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
@@ -45,3 +55,4 @@ jobs:
           projectName: personal-video-site
           directory: out
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          wranglerVersion: '3'

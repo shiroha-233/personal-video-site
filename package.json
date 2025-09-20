@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "build:static": "next build && next export"
+    "build:static": "next build"
   },
   "dependencies": {
     "@cloudflare/next-on-pages": "^1.13.16",
