@@ -30,22 +30,19 @@ export default function ProxiedImage({
   const [attempt, setAttempt] = useState(0)
   const [hasError, setHasError] = useState(false)
 
-  // 备用代理服务列表
+  // 备用代理服务列表 - 基于测试结果优化顺序
   const getProxyUrl = (originalUrl: string, attemptNum: number) => {
     const encodedUrl = encodeURIComponent(originalUrl)
     
     switch (attemptNum) {
       case 0:
-        // 尝试我们自己的简单代理
-        return `/api/simple-proxy?url=${encodedUrl}`
+        // 优先使用成功的公共代理服务
+        return `https://images.weserv.nl/?url=${encodedUrl}`
       case 1:
-        // 尝试我们的主代理
+        // 备用：我们的代理 API
         return `/api/proxy-image?url=${encodedUrl}`
       case 2:
-        // 尝试公共代理服务 (如果可用)
-        return `https://images.weserv.nl/?url=${encodedUrl}`
-      case 3:
-        // 尝试另一个公共代理
+        // 备用：另一个公共代理
         return `https://cors-anywhere.herokuapp.com/${originalUrl}`
       default:
         // 最后尝试原始 URL
@@ -80,7 +77,7 @@ export default function ProxiedImage({
   const handleError = () => {
     console.log(`图片加载失败 (尝试 ${attempt + 1}):`, currentSrc)
     
-    if (attempt < 4 && needsProxy(src)) {
+    if (attempt < 3 && needsProxy(src)) {
       setAttempt(prev => prev + 1)
     } else {
       setHasError(true)
