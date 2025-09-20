@@ -27,7 +27,6 @@ interface Video {
 export default function AdminPage() {
   const [videos, setVideos] = useState<Video[]>([])
   const [editingIndex, setEditingIndex] = useState(-1)
-  const [isStaticMode, setIsStaticMode] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -44,36 +43,18 @@ export default function AdminPage() {
 
   const loadVideos = async () => {
     try {
-      // 先尝试API，如果失败则使用静态文件
       const response = await fetch('/api/videos')
       if (response.ok) {
         const data = await response.json()
         setVideos(data)
-        setIsStaticMode(false)
-        console.log('✅ 从数据库加载了', data.length, '个视频')
+        console.log('✅ 从 API 加载了', data.length, '个视频')
       } else {
         throw new Error('API响应错误')
       }
     } catch (error) {
-      console.error('❌ API加载失败，尝试静态文件:', error)
-      
-      // 回退到静态文件
-      try {
-        const staticResponse = await fetch('/videos.json')
-        if (staticResponse.ok) {
-          const data = await staticResponse.json()
-          setVideos(data)
-          setIsStaticMode(true)
-          console.log('ℹ️ 从静态文件加载了', data.length, '个视频（只读模式）')
-        } else {
-          throw new Error('静态文件也无法访问')
-        }
-      } catch (staticError) {
-        console.error('❌ 静态文件加载失败:', staticError)
-        alert('⚠️ 无法加载视频数据，请检查文件是否存在')
-        setVideos([])
-        setIsStaticMode(true)
-      }
+      console.error('❌ 加载数据失败:', error)
+      alert('⚠️ 无法连接到服务器，请确保应用正在运行\n请使用 npm run dev 启动开发服务器')
+      setVideos([])
     }
   }
 
@@ -236,29 +217,16 @@ export default function AdminPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* 静态模式警告 */}
-        {isStaticMode && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-            <h3 className="text-yellow-900 font-semibold mb-2">⚠️ 静态部署模式（只读）</h3>
-            <div className="text-yellow-800 text-sm space-y-1">
-              <p><strong>📊 当前状态:</strong> 站点以静态模式部署，API功能不可用</p>
-              <p><strong>🔒 功能限制:</strong> 仅可查看视频数据，无法进行增删改操作</p>
-              <p><strong>🛠️ 启用编辑:</strong> 请在本地运行 <code className="bg-yellow-200 px-1 rounded">npm run dev</code> 以启用完整功能</p>
-            </div>
+        {/* 使用说明 */}
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+          <h3 className="text-green-900 font-semibold mb-2">✅ API 功能正常</h3>
+          <div className="text-green-800 text-sm space-y-1">
+            <p><strong>📋 当前状态:</strong> 本地开发模式，支持完整的增删改查功能</p>
+            <p><strong>🎯 功能特性:</strong> JSON 文件存储 + 本地 API 路由</p>
+            <p><strong>💾 数据存储:</strong> 所有修改将保存到 videos.json 文件</p>
+            <p><strong>🛠️ 使用方法:</strong> 请确保使用 <code className="bg-green-200 px-1 rounded">npm run dev</code> 启动服务</p>
           </div>
-        )}
-        
-        {/* 正常模式说明 */}
-        {!isStaticMode && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-            <h3 className="text-green-900 font-semibold mb-2">✅ API功能正常</h3>
-            <div className="text-green-800 text-sm space-y-1">
-              <p><strong>📋 当前状态:</strong> API和数据库功能已完全开启，支持增删改查</p>
-              <p><strong>🎯 功能特性:</strong> JSON文件存储 + 本地编辑</p>
-              <p><strong>💾 数据存储:</strong> 所有修改将保存到 JSON 文件</p>
-            </div>
-          </div>
-        )}
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 视频列表 */}
@@ -267,12 +235,7 @@ export default function AdminPage() {
               <h2 className="text-xl font-semibold text-gray-900">视频列表</h2>
               <button 
                 onClick={addNewVideo}
-                disabled={isStaticMode}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  isStaticMode 
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 添加视频
               </button>
@@ -281,12 +244,8 @@ export default function AdminPage() {
               {videos.map((video, index) => (
                 <div 
                   key={video.id}
-                  className={`border border-gray-200 rounded-lg p-4 ${
-                    isStaticMode 
-                      ? 'bg-gray-50' 
-                      : 'hover:bg-gray-50 cursor-pointer'
-                  }`} 
-                  onClick={isStaticMode ? undefined : () => editVideo(index)}
+                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer" 
+                  onClick={() => editVideo(index)}
                 >
                   <h3 className="font-medium text-gray-900 mb-1">{video.title}</h3>
                   <p className="text-sm text-gray-600 mb-2 line-clamp-2">{video.description}</p>
@@ -461,12 +420,7 @@ export default function AdminPage() {
               <div className="flex space-x-3">
                 <button 
                   type="submit" 
-                  disabled={isStaticMode}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    isStaticMode 
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   保存视频
                 </button>
@@ -481,20 +435,10 @@ export default function AdminPage() {
                   <button 
                     type="button" 
                     onClick={deleteVideo}
-                    disabled={isStaticMode}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      isStaticMode 
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                        : 'bg-red-600 text-white hover:bg-red-700'
-                    }`}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                   >
                     删除视频
                   </button>
-                )}
-                {isStaticMode && (
-                  <div className="text-sm text-gray-500 self-center">
-                    静态模式下仅可查看
-                  </div>
                 )}
               </div>
             </form>
