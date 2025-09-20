@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Deploy to Cloudflare Pages
     
-    # 根据记忆添加必要的权限以支持 Cloudflare Pages 部署
     permissions:
       contents: read
       deployments: write
@@ -27,21 +26,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          # 移除cache配置以解决'Dependencies lock file not found'错误
 
       - name: Install dependencies
         run: |
-          # 由于package.json和package-lock.json不同步，强制使用npm install重新生成锁文件
-          echo "Updating package-lock.json to sync with package.json"
+          # 简化的依赖安装，不再需要Prisma相关依赖
+          echo "Installing dependencies for JSON-based storage"
           npm install --legacy-peer-deps
 
-      - name: Generate Prisma Client
-        run: npx prisma generate
-
-      - name: Build with Cloudflare adapter
+      - name: Build Next.js application
         run: |
-          npm run cf:build
-          npx @cloudflare/next-on-pages --experimental-minify
+          npm run build
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
@@ -49,5 +43,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: personal-video-site
-          directory: .vercel/output/static
+          directory: .next
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
