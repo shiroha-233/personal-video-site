@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Clock, Calendar, Tag, ExternalLink } from 'lucide-react'
 import { Video } from '@/types/video'
 import VideoDetailModal from './VideoDetailModal'
-import ImageWithFallback from './ImageWithFallback'
 
 interface VideoCardProps {
   video: Video
@@ -43,7 +43,31 @@ export default function VideoCard({ video }: VideoCardProps) {
     }
   }
 
+  // 处理图片URL，对于需要代理的图片使用代理API
+  const getProxiedImageUrl = (originalUrl: string) => {
+    try {
+      const urlObj = new URL(originalUrl)
+      // 对于需要代理的域名，使用代理API
+      const needsProxy = [
+        'hdslb.com',
+        'i0.hdslb.com', 
+        'i1.hdslb.com',
+        'i2.hdslb.com',
+        'bilibili.com',
+        'img.youtube.com'
+      ].some(domain => urlObj.hostname.includes(domain))
+      
+      if (needsProxy) {
+        return `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`
+      }
+      return originalUrl
+    } catch {
+      return originalUrl
+    }
+  }
+
   const shouldShowImage = !imageError && isValidImageUrl(video.coverImage)
+  const imageUrl = getProxiedImageUrl(video.coverImage)
 
   return (
     <>
@@ -56,12 +80,18 @@ export default function VideoCard({ video }: VideoCardProps) {
         {/* Video Cover */}
         <div className="relative overflow-hidden rounded-t-xl aspect-video">
           {shouldShowImage ? (
-            <ImageWithFallback
-              src={video.coverImage}
+            <Image
+              src={imageUrl}
               alt={video.title}
               fill
               className="object-cover group-hover:scale-110 transition-transform duration-500"
               onError={() => setImageError(true)}
+              onLoad={(e) => {
+                const img = e.target as HTMLImageElement
+                if (img.naturalWidth === 0) {
+                  setImageError(true)
+                }
+              }}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">

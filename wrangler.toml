@@ -16,15 +16,3 @@ globs = ["**/*.js"]
 
 [vars]
 NODE_ENV = "production"
-NEXT_PUBLIC_BASE_URL = "https://personal-video-site.pages.dev"
-
-# 增加超时时间和内存限制
-[limits]
-cpu_ms = 50000
-memory_mb = 128
-
-# 路由配置
-[[routes]]
-pattern = "/api/*"
-zone_name = ""
-custom_domain = false
