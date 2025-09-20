@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getVideoById, updateVideo, deleteVideo } from '@/lib/data'
 
-// 移除 Edge Runtime，使用 Node.js Runtime 支持文件系统操作
-// export const runtime = 'edge'
+export const runtime = 'edge'
 
 export async function GET(
   request: NextRequest,

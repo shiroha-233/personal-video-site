@@ -1,8 +1,4 @@
 import { Video } from '@/types/video'
-import { writeFile, readFile } from 'fs/promises'
-import { join } from 'path'
-
-const VIDEOS_FILE_PATH = join(process.cwd(), 'public', 'videos.json')
 
 // 默认数据
 const defaultData: Video[] = [
@@ -26,43 +22,87 @@ const defaultData: Video[] = [
   }
 ]
 
-// 读取 JSON 文件
-async function readVideosFile(): Promise<Video[]> {
+// 检测环境
+const isDevelopment = process.env.NODE_ENV === 'development'
+
+// 开发环境：文件系统操作
+async function readVideosFromFile(): Promise<Video[]> {
+  if (!isDevelopment) return defaultData
+  
   try {
-    const fileContent = await readFile(VIDEOS_FILE_PATH, 'utf-8')
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    const filePath = path.join(process.cwd(), 'public', 'videos.json')
+    
+    const fileContent = await fs.readFile(filePath, 'utf-8')
     const data = JSON.parse(fileContent)
     return Array.isArray(data) ? data : defaultData
   } catch (error) {
-    console.log('📄 videos.json 文件不存在或格式错误，使用默认数据')
+    console.log('📄 开发环境：videos.json 文件不存在，使用默认数据')
     return defaultData
   }
 }
 
-// 写入 JSON 文件
-async function writeVideosFile(videos: Video[]): Promise<void> {
+async function writeVideosToFile(videos: Video[]): Promise<void> {
+  if (!isDevelopment) {
+    throw new Error('生产环境不支持写入操作')
+  }
+  
   try {
-    await writeFile(VIDEOS_FILE_PATH, JSON.stringify(videos, null, 2), 'utf-8')
-    console.log('💾 成功写入 videos.json 文件')
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    const filePath = path.join(process.cwd(), 'public', 'videos.json')
+    
+    await fs.writeFile(filePath, JSON.stringify(videos, null, 2), 'utf-8')
+    console.log('💾 开发环境：成功写入 videos.json 文件')
   } catch (error) {
-    console.error('❌ 写入 videos.json 文件失败:', error)
+    console.error('❌ 开发环境：写入 videos.json 文件失败:', error)
     throw error
   }
 }
 
-// 读取所有视频数据
+// 生产环境：内存存储（从静态文件初始化）
+let productionMemoryStorage: Video[] | null = null
+
+async function getProductionStorage(): Promise<Video[]> {
+  if (productionMemoryStorage === null) {
+    try {
+      // 在生产环境中，尝试通过 fetch 获取静态文件
+      const response = await fetch('/videos.json')
+      if (response.ok) {
+        const data = await response.json()
+        productionMemoryStorage = Array.isArray(data) ? data : defaultData
+      } else {
+        productionMemoryStorage = defaultData
+      }
+    } catch (error) {
+      console.log('⚠️ 生产环境：无法获取 videos.json，使用默认数据')
+      productionMemoryStorage = defaultData
+    }
+  }
+  return [...productionMemoryStorage]
+}
+
+// 统一的数据访问接口
 export async function getAllVideos(): Promise<Video[]> {
   try {
-    console.log('📋 getAllVideos 被调用 - 从文件读取')
-    const videos = await readVideosFile()
-    console.log('✅ 从 videos.json 读取到', videos.length, '个视频')
-    return videos
+    console.log(`📋 getAllVideos 被调用 - ${isDevelopment ? '开发' : '生产'}环境`)
+    
+    if (isDevelopment) {
+      const videos = await readVideosFromFile()
+      console.log('✅ 开发环境：从文件读取到', videos.length, '个视频')
+      return videos
+    } else {
+      const videos = await getProductionStorage()
+      console.log('✅ 生产环境：从内存读取到', videos.length, '个视频')
+      return videos
+    }
   } catch (error) {
     console.error('❌ 读取视频数据失败:', error)
     return [...defaultData]
   }
 }
 
-// 根据ID获取单个视频
 export async function getVideoById(id: string): Promise<Video | null> {
   try {
     const videos = await getAllVideos()
@@ -73,10 +113,13 @@ export async function getVideoById(id: string): Promise<Video | null> {
   }
 }
 
-// 创建新视频 - 保存到文件
 export async function createVideo(videoData: Omit<Video, 'id' | 'publishDate'>): Promise<string> {
+  if (!isDevelopment) {
+    throw new Error('生产环境不支持创建操作')
+  }
+  
   try {
-    console.log('➕ createVideo 被调用 - 保存到文件')
+    console.log('➕ 开发环境：createVideo 被调用')
     console.log('📊 新视频数据:', videoData)
     
     const newVideo: Video = {
@@ -85,18 +128,12 @@ export async function createVideo(videoData: Omit<Video, 'id' | 'publishDate'>):
       publishDate: new Date().toISOString().split('T')[0]
     }
     
-    console.log('🆕 生成的新视频:', newVideo)
-    
-    // 读取现有数据
-    const existingVideos = await readVideosFile()
-    
-    // 添加新视频到开头
+    const existingVideos = await readVideosFromFile()
     const updatedVideos = [newVideo, ...existingVideos]
     
-    // 写入文件
-    await writeVideosFile(updatedVideos)
+    await writeVideosToFile(updatedVideos)
     
-    console.log('✅ 视频创建成功并保存到文件, 当前总数:', updatedVideos.length)
+    console.log('✅ 开发环境：视频创建成功，当前总数:', updatedVideos.length)
     return newVideo.id
   } catch (error) {
     console.error('❌ 创建视频失败:', error)
@@ -104,38 +141,31 @@ export async function createVideo(videoData: Omit<Video, 'id' | 'publishDate'>):
   }
 }
 
-// 更新视频 - 保存到文件
 export async function updateVideo(id: string, videoData: Partial<Omit<Video, 'id' | 'publishDate'>>): Promise<boolean> {
+  if (!isDevelopment) {
+    throw new Error('生产环境不支持更新操作')
+  }
+  
   try {
-    console.log('🔄 updateVideo 被调用 - 保存到文件, ID:', id)
+    console.log('🔄 开发环境：updateVideo 被调用, ID:', id)
     console.log('📊 更新数据:', videoData)
     
-    // 读取现有数据
-    const videos = await readVideosFile()
-    console.log('📋 从文件读取到', videos.length, '个视频')
-    
+    const videos = await readVideosFromFile()
     const videoIndex = videos.findIndex(video => video.id === id)
-    console.log('🔍 找到视频索引:', videoIndex)
     
     if (videoIndex === -1) {
       console.log('❌ 视频不存在, ID:', id)
-      console.log('📋 现有视频IDs:', videos.map(v => v.id))
       return false
     }
     
-    const oldVideo = videos[videoIndex]
-    console.log('📝 原视频数据:', oldVideo)
-    
-    // 更新视频数据
     videos[videoIndex] = {
       ...videos[videoIndex],
       ...videoData
     }
     
-    // 写入文件
-    await writeVideosFile(videos)
+    await writeVideosToFile(videos)
     
-    console.log('✅ 视频更新成功并保存到文件:', videos[videoIndex])
+    console.log('✅ 开发环境：视频更新成功')
     return true
   } catch (error) {
     console.error('❌ 更新视频失败:', error)
@@ -143,26 +173,23 @@ export async function updateVideo(id: string, videoData: Partial<Omit<Video, 'id
   }
 }
 
-// 删除视频 - 保存到文件
 export async function deleteVideo(id: string): Promise<boolean> {
+  if (!isDevelopment) {
+    throw new Error('生产环境不支持删除操作')
+  }
+  
   try {
-    console.log('🗑️ deleteVideo 被调用 - 保存到文件, ID:', id)
+    console.log('🗑️ 开发环境：deleteVideo 被调用, ID:', id)
     
-    // 读取现有数据
-    const videos = await readVideosFile()
-    console.log('📋 从文件读取到', videos.length, '个视频')
-    console.log('📋 现有视频IDs:', videos.map(v => v.id))
-    
+    const videos = await readVideosFromFile()
     const originalLength = videos.length
     const filteredVideos = videos.filter(video => video.id !== id)
     
     const deleted = filteredVideos.length < originalLength
     
     if (deleted) {
-      // 写入文件
-      await writeVideosFile(filteredVideos)
-      console.log('📋 删除后视频数量:', filteredVideos.length)
-      console.log('✅ 删除成功并保存到文件')
+      await writeVideosToFile(filteredVideos)
+      console.log('✅ 开发环境：删除成功，当前总数:', filteredVideos.length)
     } else {
       console.log('❌ 未找到要删除的视频')
     }
