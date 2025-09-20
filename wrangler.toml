@@ -6,7 +6,7 @@ pages_build_output_dir = ".vercel/output/static"
 [[d1_databases]]
 binding = "DB"
 database_name = "personal-video-site-db"
-database_id = "68f44058-65cc-47b5-b289-c8fd8eef0d19"
+database_id = "3xPRXVssKsoTqhOoi5ZDPNwZloiOyU4yEPyl_ROx"
 
 # 环境变量
 [vars]
@@ -21,4 +21,4 @@ vars = { ENVIRONMENT = "production", DATABASE_URL = "sqlite://d1" }
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "personal-video-site-db"
-database_id = "68f44058-65cc-47b5-b289-c8fd8eef0d19"
+database_id = "3xPRXVssKsoTqhOoi5ZDPNwZloiOyU4yEPyl_ROx"
