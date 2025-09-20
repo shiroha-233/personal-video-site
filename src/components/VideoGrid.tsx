@@ -20,15 +20,23 @@ export default function VideoGrid({ searchQuery, selectedTag }: VideoGridProps) 
     const loadVideos = async () => {
       try {
         setLoading(true)
-        // 直接使用静态数据文件
-        const response = await fetch('/videos.json')
+        // 优先尝试API，失败时使用静态数据
+        const response = await fetch('/api/videos')
         
         if (response.ok) {
           const data = await response.json()
           setVideos(data)
           setFilteredVideos(data)
         } else {
-          throw new Error('获取视频失败')
+          // 如果API失败，尝试静态文件
+          const fallbackResponse = await fetch('/videos.json')
+          if (fallbackResponse.ok) {
+            const data = await fallbackResponse.json()
+            setVideos(data)
+            setFilteredVideos(data)
+          } else {
+            throw new Error('获取视频失败')
+          }
         }
       } catch (error) {
         console.error('加载视频失败:', error)
