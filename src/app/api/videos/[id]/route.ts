@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createCloudflareClient } from '@/lib/prisma-cloudflare'
+import { createCloudflareClient, createLocalClient } from '@/lib/prisma-cloudflare'
 
 // 配置 Edge Runtime 以支持 Cloudflare Pages
 export const runtime = 'edge'
@@ -11,17 +11,10 @@ async function getPrismaClient() {
       const env = (globalThis as any).env || process.env
       return await createCloudflareClient(env)
     } catch (error) {
-      // 动态导入 PrismaClient
-      const prismaModule = await import('@prisma/client')
-      const PrismaClient = (prismaModule as any).default.PrismaClient || (prismaModule as any).PrismaClient
-      return new PrismaClient()
+      return await createLocalClient()
     }
   }
-  
-  // 动态导入 PrismaClient  
-  const prismaModule = await import('@prisma/client')
-  const PrismaClient = (prismaModule as any).default.PrismaClient || (prismaModule as any).PrismaClient
-  return new PrismaClient()
+  return await createLocalClient()
 }
 
 // PUT: 更新视频

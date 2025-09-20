@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createCloudflareClient } from '@/lib/prisma-cloudflare'
+import { createCloudflareClient, createLocalClient } from '@/lib/prisma-cloudflare'
 
 // 配置 Edge Runtime 以支持 Cloudflare Pages
 export const runtime = 'edge'
@@ -14,18 +14,12 @@ async function getPrismaClient() {
       return await createCloudflareClient(env)
     } catch (error) {
       console.log('⚠️ D1 连接失败，回退到本地数据库:', error)
-      // 动态导入 PrismaClient
-      const prismaModule = await import('@prisma/client')
-      const PrismaClient = (prismaModule as any).default.PrismaClient || (prismaModule as any).PrismaClient
-      return new PrismaClient()
+      return await createLocalClient()
     }
   }
   
   console.log('🏠 使用本地 SQLite 数据库')
-  // 动态导入 PrismaClient
-  const prismaModule = await import('@prisma/client')
-  const PrismaClient = (prismaModule as any).default.PrismaClient || (prismaModule as any).PrismaClient
-  return new PrismaClient()
+  return await createLocalClient()
 }
 
 // GET: 获取所有视频
