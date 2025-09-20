@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { getProxiedImageUrl } from '@/lib/imageUtils'
 
 interface Resource {
   name: string
@@ -357,25 +358,7 @@ export default function AdminPage() {
                 {formData.coverImage && (
                   <div className="mt-2">
                     <Image 
-                      src={(() => {
-                        try {
-                          const urlObj = new URL(formData.coverImage)
-                          const needsProxy = [
-                            'hdslb.com',
-                            'i0.hdslb.com', 
-                            'i1.hdslb.com',
-                            'i2.hdslb.com',
-                            'bilibili.com',
-                            'img.youtube.com'
-                          ].some(domain => urlObj.hostname.includes(domain))
-                          
-                          return needsProxy 
-                            ? `/api/proxy-image?url=${encodeURIComponent(formData.coverImage)}` 
-                            : formData.coverImage
-                        } catch {
-                          return formData.coverImage
-                        }
-                      })()} 
+                      src={getProxiedImageUrl(formData.coverImage)} 
                       alt="封面预览" 
                       width={128}
                       height={72}

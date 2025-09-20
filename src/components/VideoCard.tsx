@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { Clock, Calendar, Tag, ExternalLink } from 'lucide-react'
 import { Video } from '@/types/video'
 import VideoDetailModal from './VideoDetailModal'
+import { getProxiedImageUrl, isValidImageUrl, createBlurDataURL } from '@/lib/imageUtils'
 
 interface VideoCardProps {
   video: Video
@@ -28,44 +29,6 @@ export default function VideoCard({ video }: VideoCardProps) {
     setIsModalOpen(true)
   }
 
-  // 检查URL是否可能是图片
-  const isValidImageUrl = (url: string) => {
-    try {
-      const urlObj = new URL(url)
-      // 检查是否是已知的图片域名和路径
-      if (urlObj.hostname.includes('bilibili.com') && urlObj.pathname.includes('/video/')) {
-        return false // 这是视频页面，不是图片
-      }
-      // 可以添加更多验证逻辑
-      return true
-    } catch {
-      return false
-    }
-  }
-
-  // 处理图片URL，对于需要代理的图片使用代理API
-  const getProxiedImageUrl = (originalUrl: string) => {
-    try {
-      const urlObj = new URL(originalUrl)
-      // 对于需要代理的域名，使用代理API
-      const needsProxy = [
-        'hdslb.com',
-        'i0.hdslb.com', 
-        'i1.hdslb.com',
-        'i2.hdslb.com',
-        'bilibili.com',
-        'img.youtube.com'
-      ].some(domain => urlObj.hostname.includes(domain))
-      
-      if (needsProxy) {
-        return `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`
-      }
-      return originalUrl
-    } catch {
-      return originalUrl
-    }
-  }
-
   const shouldShowImage = !imageError && isValidImageUrl(video.coverImage)
   const imageUrl = getProxiedImageUrl(video.coverImage)
 
@@ -85,13 +48,24 @@ export default function VideoCard({ video }: VideoCardProps) {
               alt={video.title}
               fill
               className="object-cover group-hover:scale-110 transition-transform duration-500"
-              onError={() => setImageError(true)}
+              onError={() => {
+                console.log('图片加载失败:', imageUrl)
+                setImageError(true)
+              }}
               onLoad={(e) => {
                 const img = e.target as HTMLImageElement
                 if (img.naturalWidth === 0) {
                   setImageError(true)
                 }
               }}
+              // 添加优先级和质量设置
+              priority={false}
+              quality={75}
+              // 添加占位符
+              placeholder="blur"
+              blurDataURL={createBlurDataURL()}
+              // 添加尺寸提示以优化加载
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
