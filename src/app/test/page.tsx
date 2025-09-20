@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import ProxiedImage from '@/components/ProxiedImage'
 
 export default function TestPage() {
   const [testResults, setTestResults] = useState<any>(null)
@@ -49,7 +50,7 @@ export default function TestPage() {
         )}
 
         {/* 图片测试 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">原始图片 URL</h3>
             <p className="text-sm text-gray-600 break-all">{testImageUrl}</p>
@@ -88,6 +89,20 @@ export default function TestPage() {
                 onLoad={() => {
                   console.log('代理图片加载成功')
                 }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">智能代理图片 (ProxiedImage)</h3>
+            <p className="text-sm text-gray-600 break-all">{testImageUrl}</p>
+            <div className="w-full h-48 bg-gray-200 rounded-lg overflow-hidden">
+              <ProxiedImage
+                src={testImageUrl}
+                alt="智能代理图片"
+                width={400}
+                height={200}
+                className="w-full h-full object-cover"
               />
             </div>
           </div>

@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Clock, Calendar, Tag, ExternalLink } from 'lucide-react'
 import { Video } from '@/types/video'
 import VideoDetailModal from './VideoDetailModal'
+import ProxiedImage from './ProxiedImage'
 
 interface VideoCardProps {
   video: Video
@@ -13,7 +13,6 @@ interface VideoCardProps {
 
 export default function VideoCard({ video }: VideoCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [imageError, setImageError] = useState(false)
   const [imageLoading, setImageLoading] = useState(true)
 
   const formatDate = (dateString: string) => {
@@ -37,54 +36,19 @@ export default function VideoCard({ video }: VideoCardProps) {
       if (urlObj.hostname.includes('bilibili.com') && urlObj.pathname.includes('/video/')) {
         return false // 这是视频页面，不是图片
       }
-      // 可以添加更多验证逻辑
       return true
     } catch {
       return false
     }
   }
 
-  // 处理图片URL，对于需要代理的图片使用代理API
-  const getProxiedImageUrl = (originalUrl: string, useProxy: boolean = true) => {
-    try {
-      const urlObj = new URL(originalUrl)
-      // 对于需要代理的域名，使用代理API
-      const needsProxy = [
-        'hdslb.com',
-        'i0.hdslb.com', 
-        'i1.hdslb.com',
-        'i2.hdslb.com',
-        'bilibili.com',
-        'img.youtube.com'
-      ].some(domain => urlObj.hostname.includes(domain))
-      
-      if (needsProxy && useProxy) {
-        return `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`
-      }
-      return originalUrl
-    } catch {
-      return originalUrl
-    }
-  }
-
-  // 处理图片加载错误，尝试降级策略
-  const handleImageError = () => {
-    console.log('图片加载失败:', video.coverImage)
-    setImageError(true)
+  const handleImageLoad = () => {
     setImageLoading(false)
   }
 
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.target as HTMLImageElement
-    if (img.naturalWidth === 0) {
-      handleImageError()
-    } else {
-      setImageLoading(false)
-    }
+  const handleImageError = () => {
+    setImageLoading(false)
   }
-
-  const shouldShowImage = !imageError && isValidImageUrl(video.coverImage)
-  const imageUrl = getProxiedImageUrl(video.coverImage)
 
   return (
     <>
@@ -96,18 +60,18 @@ export default function VideoCard({ video }: VideoCardProps) {
       >
         {/* Video Cover */}
         <div className="relative overflow-hidden rounded-t-xl aspect-video">
-          {shouldShowImage ? (
+          {isValidImageUrl(video.coverImage) ? (
             <>
               {imageLoading && (
-                <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse flex items-center justify-center">
+                <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse flex items-center justify-center z-10">
                   <div className="text-gray-400 text-center">
                     <div className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-2 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
                     <p className="text-xs sm:text-sm">加载中...</p>
                   </div>
                 </div>
               )}
-              <Image
-                src={imageUrl}
+              <ProxiedImage
+                src={video.coverImage}
                 alt={video.title}
                 fill
                 className={`object-cover group-hover:scale-110 transition-all duration-500 ${
@@ -116,7 +80,6 @@ export default function VideoCard({ video }: VideoCardProps) {
                 onError={handleImageError}
                 onLoad={handleImageLoad}
                 priority={false}
-                unoptimized={imageUrl.startsWith('/api/proxy-image')}
               />
             </>
           ) : (
