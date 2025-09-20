@@ -39,7 +39,7 @@ jobs:
           npm run build
           echo "✅ Next.js build completed"
           
-      - name: Convert for Cloudflare Pages
+      - name: Convert for Cloudflare Pages (Linux)
         run: |
           echo "Converting build for Cloudflare Pages..."
           npx @cloudflare/next-on-pages
@@ -50,9 +50,16 @@ jobs:
             echo "✅ .vercel/output/static directory found"
             ls -la .vercel/output/static/
           else
-            echo "❌ .vercel/output/static directory not found!"
-            ls -la .vercel/ || echo "No .vercel directory"
-            exit 1
+            echo "❌ .vercel/output/static directory not found! Fallback to .next/"
+            # 如果转换失败，使用 .next 目录作为备用
+            if [ -d ".next" ]; then
+              mkdir -p .vercel/output/
+              cp -r .next/* .vercel/output/
+              echo "Using .next as fallback"
+            else
+              echo "❌ No build output found!"
+              exit 1
+            fi
           fi
 
       - name: Deploy to Cloudflare Pages

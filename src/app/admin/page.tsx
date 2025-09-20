@@ -278,13 +278,14 @@ export default function AdminPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* 使用说明 */}
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-          <h3 className="text-green-900 font-semibold mb-2">✅ API 功能正常</h3>
-          <div className="text-green-800 text-sm space-y-1">
-            <p><strong>📋 当前状态:</strong> 本地开发模式，支持完整的增删改查功能</p>
-            <p><strong>🎯 功能特性:</strong> JSON 文件存储 + 本地 API 路由</p>
-            <p><strong>💾 数据存储:</strong> 所有修改将保存到 videos.json 文件</p>
-            <p><strong>🛠️ 使用方法:</strong> 请确保使用 <code className="bg-green-200 px-1 rounded">npm run dev</code> 启动服务</p>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+          <h3 className="text-amber-900 font-semibold mb-2">⚠️ 开发版本说明</h3>
+          <div className="text-amber-800 text-sm space-y-1">
+            <p><strong>📋 当前状态:</strong> Edge Runtime 模式，数据存储在内存中</p>
+            <p><strong>🎯 功能特性:</strong> 完整的增删改查功能，重启后数据重置</p>
+            <p><strong>💾 数据存储:</strong> 部署后数据变更仅在当前会话有效</p>
+            <p><strong>🛠️ 本地开发:</strong> 使用 <code className="bg-amber-200 px-1 rounded">npm run dev</code> 可获得持久化存储</p>
+            <p><strong>🔗 诊断工具:</strong> 访问 <a href="/api/health" target="_blank" className="text-blue-600 underline">/api/health</a> 查看系统状态</p>
           </div>
         </div>
 
