@@ -202,7 +202,7 @@ export default function AdminPage() {
       alert('请先输入视频链接')
       return
     }
-
+    
     setIsExtractingCover(true)
     try {
       const response = await fetch('/api/extract-cover', {
@@ -212,18 +212,21 @@ export default function AdminPage() {
         },
         body: JSON.stringify({ videoUrl: formData.videoUrl })
       })
-
-      const data = await response.json()
       
-      if (data.success) {
-        setFormData({ ...formData, coverImage: data.coverUrl })
-        alert('✅ 封面提取成功！')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.coverUrl) {
+          setFormData({...formData, coverImage: data.coverUrl})
+          alert('✅ 封面提取成功！')
+        } else {
+          throw new Error(data.error || '提取失败')
+        }
       } else {
-        alert(`❌ 封面提取失败：${data.error}`)
+        throw new Error('服务器响应错误')
       }
     } catch (error) {
-      console.error('封面提取失败:', error)
-      alert('❌ 封面提取失败，请检查网络连接')
+      console.error('提取封面失败:', error)
+      alert('❌ 提取封面失败：' + (error instanceof Error ? error.message : '未知错误'))
     } finally {
       setIsExtractingCover(false)
     }
@@ -252,11 +255,11 @@ export default function AdminPage() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* 使用说明 */}
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-          <h3 className="text-green-900 font-semibold mb-2">🎉 数据库升级完成！</h3>
+          <h3 className="text-green-900 font-semibold mb-2">✅ 数据库功能已恢复</h3>
           <div className="text-green-800 text-sm space-y-1">
-            <p><strong>✨ 新特性:</strong> 现在直接连接数据库，无需手动同步数据文件</p>
-            <p><strong>📝 使用方法:</strong> 直接在下方编辑视频信息，保存后立即生效</p>
-            <p><strong>🔄 实时同步:</strong> 所有修改会自动保存到数据库，客户端立即显示</p>
+            <p><strong>📋 当前状态:</strong> API和数据库功能已完全恢复，支持增删改查</p>
+            <p><strong>🎯 功能特性:</strong> Cloudflare D1数据库 + 图片代理 + 封面提取</p>
+            <p><strong>💾 数据存储:</strong> 所有修改将保存到Cloudflare D1数据库</p>
           </div>
         </div>
 
@@ -267,7 +270,7 @@ export default function AdminPage() {
               <h2 className="text-xl font-semibold text-gray-900">视频列表</h2>
               <button 
                 onClick={addNewVideo}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 添加视频
               </button>

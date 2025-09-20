@@ -4,9 +4,13 @@
 
 ## 🚀 部署概述
 
-此项目支持通过以下两种方式部署到 Cloudflare Pages：
-1. **手动部署** - 通过 Wrangler CLI 工具
-2. **自动部署** - 通过 GitHub Actions CI/CD
+此项目支持通过以下方式部署到 Cloudflare Pages：
+1. **自动部署** - 通过 GitHub Actions CI/CD (推荐)
+2. **手动部署** - 通过 Wrangler CLI 工具 (Linux/WSL)
+
+## ⚠️ Windows 用户注意
+
+由于 `@cloudflare/next-on-pages` 在 Windows 环境下存在兼容性问题，**强烈推荐使用 GitHub Actions 进行自动部署**。如需本地部署，请使用 WSL (Windows Subsystem for Linux)。
 
 ## 📋 前置要求
 

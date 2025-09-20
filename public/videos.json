@@ -1,0 +1,50 @@
+[
+  {
+    "id": "example-1",
+    "title": "个人视频网站部署教程",
+    "description": "使用 Next.js + Cloudflare Pages 构建个人视频资源分享网站的完整教程。\n本教程包含:\n1. Next.js 项目搭建\n2. Cloudflare Pages 部署\n3. D1 数据库配置\n4. 图片代理实现",
+    "coverImage": "https://via.placeholder.com/480x270/6366f1/ffffff?text=Video+Tutorial",
+    "videoUrl": "https://www.bilibili.com/video/BV1234567890",
+    "duration": "25:30",
+    "publishDate": "2024-01-20",
+    "resources": [
+      {
+        "name": "项目源码",
+        "type": "github",
+        "url": "https://github.com/shiroha-233/personal-video-site",
+        "description": "完整的项目源代码"
+      },
+      {
+        "name": "部署文档",
+        "type": "other",
+        "url": "https://github.com/shiroha-233/personal-video-site/blob/main/README.md",
+        "description": "详细的部署说明"
+      }
+    ],
+    "tags": ["Next.js", "Cloudflare", "教程", "部署"]
+  },
+  {
+    "id": "example-2", 
+    "title": "前端开发工具推荐",
+    "description": "分享一些前端开发中常用的工具和插件，提高开发效率。\n包含:\n1. VS Code 插件推荐\n2. Chrome 开发者工具技巧\n3. 在线工具合集",
+    "coverImage": "https://via.placeholder.com/480x270/f59e0b/ffffff?text=Dev+Tools",
+    "videoUrl": "https://www.bilibili.com/video/BV9876543210",
+    "duration": "18:45",
+    "publishDate": "2024-01-15",
+    "resources": [
+      {
+        "name": "工具清单",
+        "type": "other",
+        "url": "https://github.com/shiroha-233/frontend-tools",
+        "description": "前端开发工具清单"
+      },
+      {
+        "name": "配置文件",
+        "type": "github", 
+        "url": "https://github.com/shiroha-233/vscode-config",
+        "description": "VS Code 配置文件"
+      }
+    ],
+    "tags": ["前端", "工具", "效率", "VS Code"]
+  }
+]

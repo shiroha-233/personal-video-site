@@ -20,7 +20,9 @@ export default function VideoGrid({ searchQuery, selectedTag }: VideoGridProps) 
     const loadVideos = async () => {
       try {
         setLoading(true)
-        const response = await fetch('/api/videos')
+        // 直接使用静态数据文件，Cloudflare Functions 会在生产环境中接管 /api/videos
+        const response = await fetch('/videos.json')
+        
         if (response.ok) {
           const data = await response.json()
           setVideos(data)
@@ -30,19 +32,15 @@ export default function VideoGrid({ searchQuery, selectedTag }: VideoGridProps) 
         }
       } catch (error) {
         console.error('加载视频失败:', error)
+        // 后备空数据
+        setVideos([])
+        setFilteredVideos([])
       } finally {
         setLoading(false)
       }
     }
 
     loadVideos()
-    
-    // 设置定时刷新，每30秒检查一次更新
-    const interval = setInterval(() => {
-      loadVideos()
-    }, 30000)
-
-    return () => clearInterval(interval)
   }, [])
 
   // 处理搜索和筛选

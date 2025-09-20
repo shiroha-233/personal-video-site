@@ -29,7 +29,9 @@ jobs:
         run: npx prisma generate
 
       - name: Build with Cloudflare adapter
-        run: npm run cf:build
+        run: |
+          npm run cf:build
+          npx @cloudflare/next-on-pages
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
