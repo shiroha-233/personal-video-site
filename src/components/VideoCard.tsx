@@ -14,6 +14,7 @@ interface VideoCardProps {
 export default function VideoCard({ video }: VideoCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [imageLoading, setImageLoading] = useState(true)
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -44,7 +45,7 @@ export default function VideoCard({ video }: VideoCardProps) {
   }
 
   // 处理图片URL，对于需要代理的图片使用代理API
-  const getProxiedImageUrl = (originalUrl: string) => {
+  const getProxiedImageUrl = (originalUrl: string, useProxy: boolean = true) => {
     try {
       const urlObj = new URL(originalUrl)
       // 对于需要代理的域名，使用代理API
@@ -57,12 +58,28 @@ export default function VideoCard({ video }: VideoCardProps) {
         'img.youtube.com'
       ].some(domain => urlObj.hostname.includes(domain))
       
-      if (needsProxy) {
+      if (needsProxy && useProxy) {
         return `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`
       }
       return originalUrl
     } catch {
       return originalUrl
+    }
+  }
+
+  // 处理图片加载错误，尝试降级策略
+  const handleImageError = () => {
+    console.log('图片加载失败:', video.coverImage)
+    setImageError(true)
+    setImageLoading(false)
+  }
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.target as HTMLImageElement
+    if (img.naturalWidth === 0) {
+      handleImageError()
+    } else {
+      setImageLoading(false)
     }
   }
 
@@ -80,19 +97,28 @@ export default function VideoCard({ video }: VideoCardProps) {
         {/* Video Cover */}
         <div className="relative overflow-hidden rounded-t-xl aspect-video">
           {shouldShowImage ? (
-            <Image
-              src={imageUrl}
-              alt={video.title}
-              fill
-              className="object-cover group-hover:scale-110 transition-transform duration-500"
-              onError={() => setImageError(true)}
-              onLoad={(e) => {
-                const img = e.target as HTMLImageElement
-                if (img.naturalWidth === 0) {
-                  setImageError(true)
-                }
-              }}
-            />
+            <>
+              {imageLoading && (
+                <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse flex items-center justify-center">
+                  <div className="text-gray-400 text-center">
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-2 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+                    <p className="text-xs sm:text-sm">加载中...</p>
+                  </div>
+                </div>
+              )}
+              <Image
+                src={imageUrl}
+                alt={video.title}
+                fill
+                className={`object-cover group-hover:scale-110 transition-all duration-500 ${
+                  imageLoading ? 'opacity-0' : 'opacity-100'
+                }`}
+                onError={handleImageError}
+                onLoad={handleImageLoad}
+                priority={false}
+                unoptimized={imageUrl.startsWith('/api/proxy-image')}
+              />
+            </>
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
               <div className="text-white text-center">

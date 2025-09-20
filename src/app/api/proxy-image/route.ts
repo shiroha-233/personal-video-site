@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export const runtime = 'nodejs'
+export const runtime = 'edge'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const url = searchParams.get('url')
-  let timeoutId: NodeJS.Timeout | null = null
+  let timeoutId: number | null = null
   
   try {
     if (!url) {
@@ -15,9 +15,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // 验证 URL 格式
+    let targetUrl: URL
+    try {
+      targetUrl = new URL(url)
+    } catch {
+      return NextResponse.json(
+        { error: '无效的 URL 格式' },
+        { status: 400 }
+      )
+    }
+
+    // 只允许 HTTP 和 HTTPS 协议
+    if (!['http:', 'https:'].includes(targetUrl.protocol)) {
+      return NextResponse.json(
+        { error: '不支持的协议' },
+        { status: 400 }
+      )
+    }
+
     // 获取图片
     const controller = new AbortController()
-    timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时
+    timeoutId = setTimeout(() => controller.abort(), 8000) // 8秒超时，适合 Cloudflare Workers
     
     const response = await fetch(url, {
       headers: {
@@ -28,9 +47,7 @@ export async function GET(request: NextRequest) {
           ? 'https://www.youtube.com/' 
           : 'https://www.google.com/',
         'Accept': 'image/*,*/*;q=0.8',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
       },
       signal: controller.signal
     })
@@ -43,14 +60,32 @@ export async function GET(request: NextRequest) {
       throw new Error(`Failed to fetch image: ${response.status}`)
     }
 
+    // 验证内容类型
     const contentType = response.headers.get('content-type') || 'image/jpeg'
+    if (!contentType.startsWith('image/')) {
+      return NextResponse.json(
+        { error: '目标 URL 不是图片资源' },
+        { status: 400 }
+      )
+    }
+
     const imageData = await response.arrayBuffer()
+
+    // 检查图片大小（限制为 10MB）
+    if (imageData.byteLength > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: '图片文件过大' },
+        { status: 413 }
+      )
+    }
 
     return new NextResponse(imageData, {
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000',
-        'Access-Control-Allow-Origin': '*'
+        'Cache-Control': 'public, max-age=86400', // 24小时缓存，适合 Cloudflare
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET',
+        'Access-Control-Allow-Headers': 'Content-Type'
       }
     })
     
