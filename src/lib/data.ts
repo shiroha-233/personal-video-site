@@ -32,7 +32,11 @@ export async function getAllVideos(): Promise<Video[]> {
     if (typeof window === 'undefined') {
       // 服务器端，尝试获取静态数据
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/videos.json`, {
+        // 在Edge Runtime中，使用相对URL或默认URL
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+          (process.env.CF_PAGES ? `https://${process.env.CF_PAGES_URL}` : 'http://localhost:3000')
+        
+        const response = await fetch(`${baseUrl}/videos.json`, {
           cache: 'no-store'
         })
         if (response.ok) {
