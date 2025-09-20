@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// 配置 Edge Runtime 以支持 Cloudflare Pages
+export const runtime = 'edge'
+
 export async function POST(request: NextRequest) {
   try {
     const { videoUrl } = await request.json()

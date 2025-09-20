@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import { PrismaD1 } from '@prisma/adapter-d1'
+import { createCloudflareClient } from '@/lib/prisma-cloudflare'
 
-// 本地开发用的 Prisma 客户端
-const localPrisma = new PrismaClient()
-
-// 创建 Cloudflare D1 客户端
-async function createCloudflareClient(env: any) {
-  const adapter = new PrismaD1(env.DB)
-  const prisma = new PrismaClient({ adapter })
-  return prisma
-}
+// 配置 Edge Runtime 以支持 Cloudflare Pages
+export const runtime = 'edge'
 
 // 获取合适的 Prisma 客户端
 async function getPrismaClient() {
@@ -22,12 +14,18 @@ async function getPrismaClient() {
       return await createCloudflareClient(env)
     } catch (error) {
       console.log('⚠️ D1 连接失败，回退到本地数据库:', error)
-      return localPrisma
+      // 动态导入 PrismaClient
+      const prismaModule = await import('@prisma/client')
+      const PrismaClient = (prismaModule as any).default.PrismaClient || (prismaModule as any).PrismaClient
+      return new PrismaClient()
     }
   }
   
   console.log('🏠 使用本地 SQLite 数据库')
-  return localPrisma
+  // 动态导入 PrismaClient
+  const prismaModule = await import('@prisma/client')
+  const PrismaClient = (prismaModule as any).default.PrismaClient || (prismaModule as any).PrismaClient
+  return new PrismaClient()
 }
 
 // GET: 获取所有视频
@@ -52,7 +50,7 @@ export async function GET() {
     })
 
     // 转换数据格式
-    const formattedVideos = videos.map(video => ({
+    const formattedVideos = videos.map((video: any) => ({
       id: video.id,
       title: video.title,
       description: video.description,
@@ -62,7 +60,7 @@ export async function GET() {
       publishDate: video.publishDate.toISOString().split('T')[0],
       createdAt: video.createdAt.toISOString(),
       updatedAt: video.updatedAt.toISOString(),
-      resources: video.resources.map(resource => ({
+      resources: video.resources.map((resource: any) => ({
         name: resource.name,
         type: resource.type,
         url: resource.url,

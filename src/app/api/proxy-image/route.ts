@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// 配置 Edge Runtime 以支持 Cloudflare Pages
+export const runtime = 'edge'
+
 // 允许的域名白名单
 const ALLOWED_DOMAINS = [
   'i0.hdslb.com',
