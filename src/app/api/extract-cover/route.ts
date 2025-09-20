@@ -1,172 +1,172 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { promises as fs } from 'fs'
-import path from 'path'
 
-export const runtime = 'nodejs'
-
-// 支持的视频平台配置
-const PLATFORMS = {
-  bilibili: {
-    patterns: [/bilibili\.com\/video\/([^/?]+)/],
-    extractCover: async (url: string) => {
-      const match = url.match(/bilibili\.com\/video\/([^/?]+)/)
-      if (!match) return null
-      
-      const bvid = match[1]
-      try {
-        // 使用Bilibili API获取视频信息
-        const apiUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`
-        const response = await fetch(apiUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        })
-        
-        if (!response.ok) throw new Error('API请求失败')
-        
-        const data = await response.json()
-        if (data.code !== 0) throw new Error('视频信息获取失败')
-        
-        return {
-          title: data.data.title,
-          cover: data.data.pic,
-          duration: formatDuration(data.data.duration),
-          description: data.data.desc
-        }
-      } catch (error) {
-        console.error('Bilibili API错误:', error)
-        return null
-      }
-    }
-  },
-  youtube: {
-    patterns: [/youtube\.com\/watch\?v=([^&]+)/, /youtu\.be\/([^?]+)/],
-    extractCover: async (url: string) => {
-      const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/)
-      if (!match) return null
-      
-      const videoId = match[1]
-      // YouTube缩略图URL格式
-      return {
-        title: null, // YouTube需要API key获取详细信息
-        cover: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-        duration: null,
-        description: null
-      }
-    }
-  }
+interface VideoInfo {
+  title?: string
+  coverUrl?: string
+  duration?: string
 }
 
-// 格式化时长
-function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const secs = seconds % 60
-  
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
-  return `${minutes}:${secs.toString().padStart(2, '0')}`
+// 支持的视频平台
+const VIDEO_PLATFORMS = {
+  BILIBILI: 'bilibili',
+  YOUTUBE: 'youtube',
+  DOUYIN: 'douyin',
+  XIGUA: 'xigua'
 }
 
-// 下载并保存图片
-async function downloadAndSaveImage(imageUrl: string, filename: string): Promise<string> {
+// 提取B站视频信息
+async function extractBilibiliInfo(url: string): Promise<VideoInfo> {
   try {
-    const response = await fetch(imageUrl, {
+    // 从URL中提取BV号或av号
+    const bvMatch = url.match(/BV[a-zA-Z0-9]+/)
+    const avMatch = url.match(/av(\d+)/)
+    
+    if (!bvMatch && !avMatch) {
+      throw new Error('无法从URL中提取视频ID')
+    }
+    
+    // 构建API请求URL
+    let apiUrl = ''
+    if (bvMatch) {
+      apiUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${bvMatch[0]}`
+    } else if (avMatch) {
+      apiUrl = `https://api.bilibili.com/x/web-interface/view?aid=${avMatch[1]}`
+    }
+    
+    const response = await fetch(apiUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Referer': 'https://www.bilibili.com/'
       }
     })
     
-    if (!response.ok) throw new Error('图片下载失败')
-    
-    const buffer = await response.arrayBuffer()
-    const uint8Array = new Uint8Array(buffer)
-    
-    // 确保covers目录存在
-    const coversDir = path.join(process.cwd(), 'public', 'covers')
-    try {
-      await fs.access(coversDir)
-    } catch {
-      await fs.mkdir(coversDir, { recursive: true })
+    if (!response.ok) {
+      throw new Error('B站API请求失败')
     }
     
-    // 保存图片
-    const filepath = path.join(coversDir, filename)
-    await fs.writeFile(filepath, uint8Array)
+    const data = await response.json()
     
-    return `/covers/${filename}`
+    if (data.code !== 0) {
+      throw new Error(data.message || 'B站API返回错误')
+    }
+    
+    const videoData = data.data
+    
+    // 格式化时长
+    const formatDuration = (seconds: number): string => {
+      const hours = Math.floor(seconds / 3600)
+      const minutes = Math.floor((seconds % 3600) / 60)
+      const secs = seconds % 60
+      
+      if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      } else {
+        return `${minutes}:${secs.toString().padStart(2, '0')}`
+      }
+    }
+    
+    return {
+      title: videoData.title,
+      coverUrl: videoData.pic,
+      duration: formatDuration(videoData.duration)
+    }
   } catch (error) {
-    console.error('图片保存失败:', error)
+    console.error('提取B站视频信息失败:', error)
     throw error
   }
 }
 
+// 提取YouTube视频信息
+async function extractYouTubeInfo(url: string): Promise<VideoInfo> {
+  try {
+    // 从URL中提取视频ID
+    const videoIdMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)
+    
+    if (!videoIdMatch) {
+      throw new Error('无法从YouTube URL中提取视频ID')
+    }
+    
+    const videoId = videoIdMatch[1]
+    
+    // YouTube缩略图URL模式
+    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+    
+    // 尝试获取视频标题（通过oEmbed API）
+    try {
+      const oembedResponse = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`)
+      if (oembedResponse.ok) {
+        const oembedData = await oembedResponse.json()
+        return {
+          title: oembedData.title,
+          coverUrl: thumbnailUrl
+        }
+      }
+    } catch (error) {
+      console.warn('无法获取YouTube视频标题:', error)
+    }
+    
+    return {
+      coverUrl: thumbnailUrl
+    }
+  } catch (error) {
+    console.error('提取YouTube视频信息失败:', error)
+    throw error
+  }
+}
+
+// 检测视频平台类型
+function detectPlatform(url: string): string {
+  if (url.includes('bilibili.com')) {
+    return VIDEO_PLATFORMS.BILIBILI
+  } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    return VIDEO_PLATFORMS.YOUTUBE
+  } else if (url.includes('douyin.com')) {
+    return VIDEO_PLATFORMS.DOUYIN
+  } else if (url.includes('ixigua.com')) {
+    return VIDEO_PLATFORMS.XIGUA
+  }
+  
+  return 'unknown'
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { videoUrl } = await request.json()
+    const { url } = await request.json()
     
-    if (!videoUrl) {
-      return NextResponse.json({ error: '请提供视频链接' }, { status: 400 })
+    if (!url) {
+      return NextResponse.json(
+        { error: '请提供视频URL' },
+        { status: 400 }
+      )
     }
     
-    console.log('🎬 提取视频信息:', videoUrl)
+    const platform = detectPlatform(url)
+    let videoInfo: VideoInfo = {}
     
-    // 识别平台并提取信息
-    let videoInfo = null
-    let platform = ''
-    
-    for (const [platformName, config] of Object.entries(PLATFORMS)) {
-      const isMatch = config.patterns.some(pattern => pattern.test(videoUrl))
-      if (isMatch) {
-        platform = platformName
-        videoInfo = await config.extractCover(videoUrl)
+    switch (platform) {
+      case VIDEO_PLATFORMS.BILIBILI:
+        videoInfo = await extractBilibiliInfo(url)
         break
-      }
+      case VIDEO_PLATFORMS.YOUTUBE:
+        videoInfo = await extractYouTubeInfo(url)
+        break
+      default:
+        return NextResponse.json(
+          { error: '暂不支持该视频平台' },
+          { status: 400 }
+        )
     }
     
-    if (!videoInfo) {
-      return NextResponse.json({ 
-        error: '不支持的视频平台或链接格式错误',
-        supportedPlatforms: ['bilibili.com', 'youtube.com', 'youtu.be']
-      }, { status: 400 })
-    }
-    
-    let localCoverPath = null
-    
-    // 如果获取到封面，尝试下载保存
-    if (videoInfo.cover) {
-      try {
-        const timestamp = Date.now()
-        const filename = `cover_${timestamp}.jpg`
-        localCoverPath = await downloadAndSaveImage(videoInfo.cover, filename)
-        console.log('✅ 封面下载成功:', localCoverPath)
-      } catch (error) {
-        console.warn('⚠️ 封面下载失败，使用原始链接:', error)
-        localCoverPath = videoInfo.cover // 回退到原始链接
-      }
-    }
-    
-    const result = {
+    return NextResponse.json({
       success: true,
       platform,
-      data: {
-        title: videoInfo.title,
-        coverImage: localCoverPath,
-        originalCover: videoInfo.cover,
-        duration: videoInfo.duration,
-        description: videoInfo.description
-      }
-    }
-    
-    console.log('🎯 提取完成:', result)
-    return NextResponse.json(result)
+      ...videoInfo
+    })
     
   } catch (error) {
-    console.error('❌ 封面提取失败:', error)
+    console.error('提取视频信息失败:', error)
     return NextResponse.json(
-      { error: '封面提取失败: ' + (error instanceof Error ? error.message : 'Unknown error') },
+      { error: error instanceof Error ? error.message : '提取视频信息失败' },
       { status: 500 }
     )
   }
