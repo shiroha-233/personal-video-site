@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createCloudflareClient, createLocalClient } from '@/lib/prisma-cloudflare'
+import { getRequestContext } from '@cloudflare/next-on-pages'
 
 // 配置 Edge Runtime 以支持 Cloudflare Pages
 export const runtime = 'edge'
@@ -7,23 +8,19 @@ export const runtime = 'edge'
 // 获取合适的 Prisma 客户端
 async function getPrismaClient() {
   try {
-    // 在 Cloudflare 环境中，环境变量通过 env 参数传递
     // 检查是否在生产环境
     const isProduction = typeof process !== 'undefined' && 
       (process.env.NODE_ENV === 'production' || process.env.CF_PAGES)
     
     if (isProduction) {
-      console.log('🌐 检测到 Cloudflare 环境，尝试连接 D1 数据库')
-      
-      // 在 Cloudflare 环境中，数据库绑定会作为 context 参数传递
-      // 这里我们先尝试获取环境变量
-      const env = (globalThis as any).env || {}
-      
-      if (env.DB) {
-        console.log('✨ 找到 D1 数据库绑定')
+      try {
+        // 使用 @cloudflare/next-on-pages 推荐的方法获取 Cloudflare 环境
+        const { env } = getRequestContext()
+        console.log('🌐 成功获取 Cloudflare 环境，使用 D1 数据库')
+        console.log('📦 环境绑定:', { hasDB: !!(env as any).DB })
         return await createCloudflareClient(env)
-      } else {
-        console.log('⚠️ 未找到 D1 数据库绑定，使用本地数据库')
+      } catch (contextError) {
+        console.log('⚠️ 无法获取 Cloudflare 上下文，回退到本地模式:', contextError)
         return await createLocalClient()
       }
     } else {
@@ -38,14 +35,13 @@ async function getPrismaClient() {
 }
 
 // GET: 获取所有视频
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     console.log('📋 API调用: GET /api/videos')
     console.log('🌍 环境信息:', {
       NODE_ENV: process.env.NODE_ENV,
       CF_PAGES: process.env.CF_PAGES,
-      ENVIRONMENT: process.env.ENVIRONMENT,
-      hasGlobalEnv: !!(globalThis as any).env
+      ENVIRONMENT: process.env.ENVIRONMENT
     })
     
     const prisma = await getPrismaClient()
@@ -118,7 +114,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('➕ API调用: POST /api/videos')
     
-    const data = await request.json()
+    const data: any = await request.json()
     const prisma = await getPrismaClient()
     
     // 创建视频记录
