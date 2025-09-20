@@ -2,11 +2,11 @@ name = "personal-video-site"
 compatibility_date = "2024-01-15"
 pages_build_output_dir = ".vercel/output/static"
 
-# D1 数据库配置
-[[d1_databases]]
-binding = "DB"
-database_name = "personal-video-site-db"
-database_id = "3xPRXVssKsoTqhOoi5ZDPNwZloiOyU4yEPyl_ROx"
+# 暂时移除 D1 数据库配置，直到创建正确的数据库 ID
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "personal-video-site-db"
+# database_id = "3xPRXVssKsoTqhOoi5ZDPNwZloiOyU4yEPyl_ROx"
 
 # 环境变量
 [vars]
@@ -17,8 +17,8 @@ ENVIRONMENT = "development"
 [env.production]
 vars = { ENVIRONMENT = "production", DATABASE_URL = "sqlite://d1" }
 
-# 生产环境 D1 数据库
-[[env.production.d1_databases]]
-binding = "DB"
-database_name = "personal-video-site-db"
-database_id = "3xPRXVssKsoTqhOoi5ZDPNwZloiOyU4yEPyl_ROx"
+# 暂时移除生产环境 D1 数据库
+# [[env.production.d1_databases]]
+# binding = "DB"
+# database_name = "personal-video-site-db"
+# database_id = "3xPRXVssKsoTqhOoi5ZDPNwZloiOyU4yEPyl_ROx"
