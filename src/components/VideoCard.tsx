@@ -47,8 +47,17 @@ export default function VideoCard({ video }: VideoCardProps) {
   const getProxiedImageUrl = (originalUrl: string) => {
     try {
       const urlObj = new URL(originalUrl)
-      // 对于hdslb.com域名的图片，使用代理
-      if (urlObj.hostname.includes('hdslb.com')) {
+      // 对于需要代理的域名，使用代理API
+      const needsProxy = [
+        'hdslb.com',
+        'i0.hdslb.com', 
+        'i1.hdslb.com',
+        'i2.hdslb.com',
+        'bilibili.com',
+        'img.youtube.com'
+      ].some(domain => urlObj.hostname.includes(domain))
+      
+      if (needsProxy) {
         return `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`
       }
       return originalUrl
