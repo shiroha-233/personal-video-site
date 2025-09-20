@@ -47,6 +47,12 @@ export default function VideoCard({ video }: VideoCardProps) {
   const getProxiedImageUrl = (originalUrl: string) => {
     try {
       const urlObj = new URL(originalUrl)
+      
+      // 检查是否有跳过代理的标记
+      if (originalUrl.includes('#no-proxy')) {
+        return originalUrl.replace('#no-proxy', '')
+      }
+      
       // 对于需要代理的域名，使用代理API
       const needsProxy = [
         'hdslb.com',
