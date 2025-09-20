@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createCloudflareClient, createLocalClient } from '@/lib/prisma-cloudflare'
+import { createCloudflareClient, createMockClient } from '@/lib/prisma-cloudflare'
 
-// 在本地开发中使用 nodejs，在生产环境中使用 edge
-export const runtime = process.env.NODE_ENV === 'development' ? 'nodejs' : 'edge'
+// 使用 Edge Runtime 以支持 Cloudflare Pages
+export const runtime = 'edge'
 
 // 获取合适的 Prisma 客户端
 async function getPrismaClient() {
@@ -14,29 +14,27 @@ async function getPrismaClient() {
     if (isProduction) {
       console.log('🌐 生产环境检测，尝试使用 Cloudflare D1')
       
-      // 在 Cloudflare Pages 中，环境绑定通过 global 对象传递
-      // 但在 Edge Runtime 中，这可能不可用，所以我们回退到本地模式
       try {
         const globalEnv = (globalThis as any).env
         if (globalEnv && globalEnv.DB) {
           console.log('✨ 找到 D1 数据库绑定')
           return await createCloudflareClient(globalEnv)
+        } else {
+          console.log('⚠️ 未找到 D1 数据库绑定，使用模拟数据')
+          return await createMockClient()
         }
       } catch (envError) {
         console.log('⚠️ 无法访问 Cloudflare 环境绑定:', envError)
+        return await createMockClient()
       }
-      
-      // 如果找不到 D1 绑定，回退到本地模式
-      console.log('🏠 回退到本地 SQLite 数据库')
-      return await createLocalClient()
     } else {
-      console.log('🏠 本地开发环境，使用 SQLite 数据库')
-      return await createLocalClient()
+      console.log('🏠 本地开发环境，使用模拟数据')
+      return await createMockClient()
     }
   } catch (error) {
     console.error('⚠️ 获取 Prisma 客户端失败:', error)
-    console.log('🔄 回退到本地数据库模式')
-    return await createLocalClient()
+    console.log('🔄 回退到模拟数据模式')
+    return await createMockClient()
   }
 }
 
