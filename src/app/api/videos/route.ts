@@ -6,28 +6,50 @@ export const runtime = 'edge'
 
 // 获取合适的 Prisma 客户端
 async function getPrismaClient() {
-  // 检查是否在 Cloudflare 环境中
-  if (typeof process !== 'undefined' && (process.env.CF_PAGES || process.env.ENVIRONMENT === 'production')) {
-    try {
-      const env = (globalThis as any).env || process.env
-      console.log('🌐 使用 Cloudflare D1 数据库')
-      return await createCloudflareClient(env)
-    } catch (error) {
-      console.log('⚠️ D1 连接失败，回退到本地数据库:', error)
+  try {
+    // 在 Cloudflare 环境中，环境变量通过 env 参数传递
+    // 检查是否在生产环境
+    const isProduction = typeof process !== 'undefined' && 
+      (process.env.NODE_ENV === 'production' || process.env.CF_PAGES)
+    
+    if (isProduction) {
+      console.log('🌐 检测到 Cloudflare 环境，尝试连接 D1 数据库')
+      
+      // 在 Cloudflare 环境中，数据库绑定会作为 context 参数传递
+      // 这里我们先尝试获取环境变量
+      const env = (globalThis as any).env || {}
+      
+      if (env.DB) {
+        console.log('✨ 找到 D1 数据库绑定')
+        return await createCloudflareClient(env)
+      } else {
+        console.log('⚠️ 未找到 D1 数据库绑定，使用本地数据库')
+        return await createLocalClient()
+      }
+    } else {
+      console.log('🏠 本地开发环境，使用 SQLite 数据库')
       return await createLocalClient()
     }
+  } catch (error) {
+    console.error('⚠️ 获取 Prisma 客户端失败:', error)
+    console.log('🔄 回退到本地数据库模式')
+    return await createLocalClient()
   }
-  
-  console.log('🏠 使用本地 SQLite 数据库')
-  return await createLocalClient()
 }
 
 // GET: 获取所有视频
 export async function GET() {
   try {
     console.log('📋 API调用: GET /api/videos')
+    console.log('🌍 环境信息:', {
+      NODE_ENV: process.env.NODE_ENV,
+      CF_PAGES: process.env.CF_PAGES,
+      ENVIRONMENT: process.env.ENVIRONMENT,
+      hasGlobalEnv: !!(globalThis as any).env
+    })
     
     const prisma = await getPrismaClient()
+    console.log('🔗 Prisma 客户端创建成功')
     
     const videos = await prisma.video.findMany({
       include: {
@@ -42,6 +64,8 @@ export async function GET() {
         publishDate: 'desc'
       }
     })
+
+    console.log(`📀 查询到 ${videos.length} 个视频记录`)
 
     // 转换数据格式
     const formattedVideos = videos.map((video: any) => ({
@@ -76,8 +100,14 @@ export async function GET() {
 
   } catch (error) {
     console.error('❌ 获取视频列表失败:', error)
+    console.error('❌ 错误堆栈:', error instanceof Error ? error.stack : 'Unknown error')
+    
     return NextResponse.json(
-      { error: '获取视频列表失败', details: error instanceof Error ? error.message : String(error) },
+      { 
+        error: '获取视频列表失败', 
+        details: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     )
   }
