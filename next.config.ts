@@ -12,10 +12,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  // 静态导出配置 - 支持 Cloudflare Pages 部署
-  output: 'export',
-  trailingSlash: true,
-  skipTrailingSlashRedirect: true,
+  // 使用 @cloudflare/next-on-pages 适配器支持 API 路由
   // JSON文件存储配置 - 支持完整 API 功能
 };
 
